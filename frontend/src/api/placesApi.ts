@@ -1,5 +1,5 @@
 import { fallbackPlaces } from '../data/fallbackPlaces';
-import type { Place } from '../types';
+import type { PagedResult, Place } from '../types';
 
 const API_BASE = '';
 
@@ -43,5 +43,33 @@ export async function getRandomPlace(category?: string): Promise<Place> {
         : fallbackPlaces;
     const list = pool.length > 0 ? pool : fallbackPlaces;
     return list[Math.floor(Math.random() * list.length)];
+  }
+}
+
+// Página del grid: /api/places?page=&pageSize=&category= (cacheada 1 h por página).
+// Sin backend, pagina el catálogo local con el mismo sobre.
+export async function getPagedPlaces(
+  page: number,
+  pageSize: number,
+  category?: string,
+): Promise<PagedResult<Place>> {
+  const scope = category?.trim();
+  const qs = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+    ...(scope ? { category: scope } : {}),
+  }).toString();
+  try {
+    return await fetchJson<PagedResult<Place>>(`${API_BASE}/api/places?${qs}`);
+  } catch {
+    const pool =
+      scope && scope.toLowerCase() !== 'todas'
+        ? fallbackPlaces.filter((p) => p.category.toLowerCase() === scope.toLowerCase())
+        : fallbackPlaces;
+    const safeSize = Math.min(Math.max(pageSize, 1), 50);
+    const safePage = Math.max(page, 1);
+    const totalPages = Math.max(1, Math.ceil(pool.length / safeSize));
+    const items = pool.slice((safePage - 1) * safeSize, safePage * safeSize);
+    return { items, page: safePage, pageSize: safeSize, totalCount: pool.length, totalPages };
   }
 }

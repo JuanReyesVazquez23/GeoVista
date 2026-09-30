@@ -1,27 +1,94 @@
-import { useEffect, useMemo, useState } from 'react';
-import Globe from 'react-globe.gl';
-import type { Place } from '../types';
+import { useEffect, useRef, useState } from 'react';
+import Globe, { type GlobeMethods } from 'react-globe.gl';
 
 interface Props {
-  places: Place[];
-  highlight?: Place | null;
-  onSelect?: (place: Place) => void;
   // Pausa la rotación (p. ej. cuando el modal 360° está abierto).
   paused?: boolean;
 }
 
-interface GlobePoint {
-  lat: number;
-  lng: number;
-  size: number;
-  color: string;
-  label: string;
-  place: Place;
+const TOPOLOGY_URL = '//unpkg.com/three-globe/example/img/earth-topology.png';
+
+// Paleta azul GeoVista (del fondo de la página al cyan de acento):
+// océano profundo → plataforma → costa → tierra → cumbres.
+const STOPS: Array<[number, [number, number, number]]> = [
+  [0, [5, 14, 28]],
+  [0.35, [10, 42, 74]],
+  [0.6, [22, 96, 142]],
+  [0.8, [38, 148, 198]],
+  [1, [130, 214, 246]],
+];
+
+function ramp(t: number): [number, number, number] {
+  const clamped = Math.min(1, Math.max(0, t));
+  for (let i = 1; i < STOPS.length; i++) {
+    if (clamped <= STOPS[i][0]) {
+      const [t0, c0] = STOPS[i - 1];
+      const [t1, c1] = STOPS[i];
+      const k = (clamped - t0) / (t1 - t0 || 1);
+      return [
+        Math.round(c0[0] + (c1[0] - c0[0]) * k),
+        Math.round(c0[1] + (c1[1] - c0[1]) * k),
+        Math.round(c0[2] + (c1[2] - c0[2]) * k),
+      ];
+    }
+  }
+  return STOPS[STOPS.length - 1][1];
 }
 
-// Globo terráqueo animado de fondo (rota solo, no bloquea el scroll/clics).
-export default function GlobeBackground({ places, highlight, onSelect, paused }: Props) {
+// Genera la textura del globo tiñendo el mapa de relieve (topology) con la
+// paleta azul: se conserva el relieve real de continentes, sin colores tierra.
+function blueEarthTexture(): Promise<string> {
+  const solidNavy = () => {
+    const c = document.createElement('canvas');
+    c.width = 64;
+    c.height = 32;
+    const ctx = c.getContext('2d');
+    if (!ctx) return '';
+    ctx.fillStyle = '#0a1c30';
+    ctx.fillRect(0, 0, c.width, c.height);
+    return c.toDataURL();
+  };
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        const ctx = c.getContext('2d');
+        if (!ctx) {
+          resolve(solidNavy());
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, c.width, c.height);
+        const d = imageData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          // Luminancia del relieve: océanos oscuros, tierras altas claras.
+          const t = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
+          const [r, g, b] = ramp(t);
+          d[i] = r;
+          d[i + 1] = g;
+          d[i + 2] = b;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        resolve(c.toDataURL());
+      } catch {
+        resolve(solidNavy());
+      }
+    };
+    img.onerror = () => resolve(solidNavy());
+    img.src = TOPOLOGY_URL;
+  });
+}
+
+// Globo terráqueo animado de fondo, puramente decorativo:
+// sin etiquetas ni marcadores, no bloquea el scroll/clics.
+export default function GlobeBackground({ paused }: Props) {
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const [texture, setTexture] = useState<string | null>(null);
   // El 3D se pausa si la pestaña está oculta, el usuario prefiere movimiento
   // reducido o el modal 360° está abierto (ahorra GPU/batería).
   const [tabVisible, setTabVisible] = useState(
@@ -32,6 +99,23 @@ export default function GlobeBackground({ places, highlight, onSelect, paused }:
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
+  const globeRef = useRef<GlobeMethods | undefined>(undefined);
+  const shouldRotate = tabVisible && !reducedMotion && !paused;
+
+  // La rotación se controla por ref (GlobeProps no expone autoRotate).
+  useEffect(() => {
+    const controls = globeRef.current?.controls();
+    if (controls) {
+      controls.autoRotate = shouldRotate;
+      controls.autoRotateSpeed = 0.7;
+    }
+  }, [shouldRotate]);
+
+  useEffect(() => {
+    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     const onVisibility = () => setTabVisible(!document.hidden);
@@ -40,56 +124,31 @@ export default function GlobeBackground({ places, highlight, onSelect, paused }:
   }, []);
 
   useEffect(() => {
-    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    let alive = true;
+    blueEarthTexture().then((t) => {
+      if (alive && t) setTexture(t);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
-
-  const points: GlobePoint[] = useMemo(
-    () =>
-      places.map((p) => ({
-        lat: p.latitude,
-        lng: p.longitude,
-        size: highlight?.id === p.id ? 1.1 : 0.55,
-        color: highlight?.id === p.id ? '#22d3ee' : '#f472b6',
-        label: `${p.name} — ${p.country}`,
-        place: p,
-      })),
-    [places, highlight],
-  );
 
   return (
     <div className="globe-bg" aria-hidden="true">
-      <Globe
-        width={size.w}
-        height={size.h}
-        backgroundColor="rgba(0,0,0,0)"
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-        showAtmosphere
-        atmosphereColor="#38bdf8"
-        atmosphereAltitude={0.2}
-        pointsData={points}
-        pointLat="lat"
-        pointLng="lng"
-        pointAltitude={0.02}
-        pointRadius="size"
-        pointColor="color"
-        labelsData={points}
-        labelLat="lat"
-        labelLng="lng"
-        labelText="label"
-        labelSize={1.4}
-        labelDotRadius={0.4}
-        labelColor={() => 'rgba(226, 232, 240, 0.85)'}
-        autoRotate={tabVisible && !reducedMotion && !paused}
-        autoRotateSpeed={0.7}
-        // @ts-expect-error firma amplia de react-globe.gl
-        onPointClick={(p: GlobePoint) => onSelect?.(p.place)}
-        // @ts-expect-error firma amplia de react-globe.gl
-        onLabelClick={(p: GlobePoint) => onSelect?.(p.place)}
-      />
+      {texture && (
+        <Globe
+          ref={globeRef}
+          width={size.w}
+          height={size.h}
+          backgroundColor="rgba(0,0,0,0)"
+          globeImageUrl={texture}
+          bumpImageUrl={TOPOLOGY_URL}
+          backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+          showAtmosphere
+          atmosphereColor="#38bdf8"
+          atmosphereAltitude={0.2}
+        />
+      )}
       <div className="globe-vignette" />
     </div>
   );

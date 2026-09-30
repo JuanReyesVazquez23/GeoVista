@@ -9,17 +9,19 @@ interface Props {
   onRandom: () => void;
 }
 
-type View = 'street' | 'map';
+type View = 'street' | 'map' | 'photo';
 
 // Experiencia 360°: Street View a nivel de calle + mapa + enlaces externos.
 // El truco clave: q vacío + layer=c + cbll + cbp fuerza el modo calle.
 // (Con q=lat,lng Google ignora layer=c y muestra el mapa desde arriba.)
 // No requiere API key: usa los endpoints públicos output=embed de Google Maps.
 export default function ExploreModal({ place, onClose, onRandom }: Props) {
-  const [view, setView] = useState<View>('street');
+  // Política GeoVista: sin cobertura Street View → vista fotográfica, no iframe roto.
+  const hasStreetView = place.hasStreetView !== false;
+  const [view, setView] = useState<View>(hasStreetView ? 'street' : 'photo');
 
   useEffect(() => {
-    setView('street');
+    setView(place.hasStreetView === false ? 'photo' : 'street');
   }, [place.id]);
 
   useEffect(() => {
@@ -72,15 +74,27 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
         <p className="modal-desc">{place.description}</p>
 
         <div className="view-tabs" role="tablist" aria-label="Vista">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'street'}
-            className={`tab${view === 'street' ? ' active' : ''}`}
-            onClick={() => setView('street')}
-          >
-            🚶 Street View 360°
-          </button>
+          {hasStreetView ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'street'}
+              className={`tab${view === 'street' ? ' active' : ''}`}
+              onClick={() => setView('street')}
+            >
+              🚶 Street View 360°
+            </button>
+          ) : (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'photo'}
+              className={`tab${view === 'photo' ? ' active' : ''}`}
+              onClick={() => setView('photo')}
+            >
+              📷 Vista fotográfica
+            </button>
+          )}
           <button
             type="button"
             role="tab"
@@ -93,7 +107,20 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
         </div>
 
         <div className="embed-single">
-          {view === 'street' ? (
+          {view === 'photo' ? (
+            <div className="photo-view">
+              <PlaceImage
+                key={`ph-${place.id}`}
+                place={place}
+                w={1600}
+                referrerPolicy="no-referrer"
+              />
+              <p className="embed-hint">
+                📷 Esta zona no tiene cobertura Street View: disfruta la vista fotográfica
+                y ubícala en el mapa.
+              </p>
+            </div>
+          ) : view === 'street' ? (
             <iframe
               key={`sv-${place.id}`}
               title={`Street View de ${place.name}`}
@@ -125,9 +152,20 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
           <button type="button" className="btn btn-primary" onClick={onRandom}>
             🎲 Explorar otro lugar
           </button>
-          <a className="btn btn-ghost" href={panoLink} target="_blank" rel="noreferrer">
-            Abrir 360° en Google Maps
-          </a>
+          {hasStreetView ? (
+            <a className="btn btn-ghost" href={panoLink} target="_blank" rel="noreferrer">
+              Abrir 360° en Google Maps
+            </a>
+          ) : (
+            <a
+              className="btn btn-ghost"
+              href={`https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Abrir en Google Maps
+            </a>
+          )}
           <a
             className="btn btn-ghost"
             href={`https://earth.google.com/web/@${place.latitude},${place.longitude},500a,2000d,35y,0h,0t,0r`}

@@ -38,6 +38,16 @@ const KEYWORDS: Record<string, string> = {
   'plaza-roja': 'moscow,redsquare',
   'lago-baikal': 'baikal,lake',
   'salvador-sangre': 'saintpetersburg,church',
+  'aurora-tromso': 'tromso,aurora',
+  'lago-moraine': 'moraine,canada',
+  acropolis: 'athens,acropolis',
+  'santa-sofia': 'istanbul,mosque',
+  'montana-mesa': 'capetown,tablemountain',
+  amboseli: 'kenya,safari',
+  petra: 'petra,jordan',
+  'angkor-wat': 'angkor,cambodia',
+  neuschwanstein: 'bavaria,castle',
+  hallstatt: 'hallstatt,austria',
 };
 
 interface Props extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {

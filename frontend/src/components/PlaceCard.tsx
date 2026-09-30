@@ -5,18 +5,29 @@ import PlaceImage from './PlaceImage';
 interface Props {
   place: Place;
   onExplore: (place: Place) => void;
+  isFav: boolean;
+  onToggleFav: (id: string) => void;
 }
 
 // memo: evita re-renderizar las 35 tarjetas cuando App re-renderiza
 // (spinning, modal, categoría) sin que cambien sus props.
 // La entrada por scroll y el hover van por CSS (.reveal, .card:hover),
 // sin medir layouts por JS en cada render.
-function PlaceCard({ place, onExplore }: Props) {
+function PlaceCard({ place, onExplore, isFav, onToggleFav }: Props) {
   return (
     <article className="card reveal">
       <div className="card-media">
         <PlaceImage place={place} w={600} loading="lazy" referrerPolicy="no-referrer" />
         <span className="chip">{place.category}</span>
+        <button
+          type="button"
+          className={`fav-btn${isFav ? ' active' : ''}`}
+          onClick={() => onToggleFav(place.id)}
+          aria-pressed={isFav}
+          aria-label={isFav ? `Quitar ${place.name} de favoritos` : `Guardar ${place.name} en favoritos`}
+        >
+          {isFav ? '♥' : '♡'}
+        </button>
       </div>
       <div className="card-body">
         <h3>{place.name}</h3>
@@ -27,7 +38,7 @@ function PlaceCard({ place, onExplore }: Props) {
         </p>
         <div className="card-actions">
           <button type="button" className="btn btn-primary btn-sm" onClick={() => onExplore(place)}>
-            Explorar 360°
+            {place.hasStreetView === false ? 'Explorar' : 'Explorar 360°'}
           </button>
           <a
             className="btn btn-ghost btn-sm"
