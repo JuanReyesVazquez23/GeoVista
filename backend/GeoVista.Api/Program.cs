@@ -3,11 +3,20 @@ using GeoVista.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Orígenes del frontend: locales en dev + dominios de producción (Render: FRONTEND_URL).
+var frontendOrigins = new List<string> { "http://localhost:5173", "http://localhost:3000" };
+var extraOrigins = Environment.GetEnvironmentVariable("FRONTEND_URL")?.Split(
+    ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+if (extraOrigins is not null)
+{
+    frontendOrigins.AddRange(extraOrigins);
+}
+
 // CORS abierto para el frontend Vite en desarrollo.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("GeoVistaWeb", policy =>
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins([.. frontendOrigins])
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
@@ -130,4 +139,13 @@ app.MapGet("/api/places/{id}", (HttpContext http, string id) =>
 .WithName("GetPlaceById")
 .WithSummary("Devuelve un lugar por su id.");
 
-app.Run();
+// Render inyecta $PORT: la API debe escuchar ahí (Docker ignora launchSettings).
+var port = Environment.GetEnvironmentVariable("PORT");
+if (string.IsNullOrWhiteSpace(port))
+{
+    app.Run();
+}
+else
+{
+    app.Run($"http://0.0.0.0:{port}");
+}

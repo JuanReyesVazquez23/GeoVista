@@ -1,7 +1,9 @@
 import { fallbackPlaces } from '../data/fallbackPlaces';
 import type { PagedResult, Place } from '../types';
 
-const API_BASE = '';
+// En dev es '' (usa el proxy de Vite); en producción (Vercel) se inyecta
+// VITE_API_URL=https://tu-api.onrender.com al compilar.
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
