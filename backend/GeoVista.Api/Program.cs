@@ -46,14 +46,39 @@ catch (FileNotFoundException ex)
     throw new InvalidOperationException($"No se encontró {jsonPath}.", ex);
 }
 
-app.MapGet("/api/places", (HttpContext http) =>
+app.MapGet("/api/places", (HttpContext http, int? page, int? pageSize, string? category) =>
 {
-    // El catálogo casi no cambia: el navegador lo reutiliza 1 hora sin re-descargar.
+    // El catálogo casi no cambia: el navegador reutiliza cada página 1 hora.
+    // La query es parte de la clave de caché, así que cada página se cachea aparte.
     http.Response.Headers.CacheControl = "public,max-age=3600";
-    return Results.Ok(places);
+
+    var pool = string.IsNullOrWhiteSpace(category) ||
+        string.Equals(category.Trim(), "Todas", StringComparison.OrdinalIgnoreCase)
+        ? places
+        : places
+            .Where(p => string.Equals(p.Category, category.Trim(), StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+    // Sin parámetros: compatibilidad, devuelve el array completo.
+    if (page is null && pageSize is null)
+    {
+        return Results.Ok(pool);
+    }
+
+    var currentPage = page.GetValueOrDefault(1);
+    var size = pageSize.GetValueOrDefault(12);
+    if (currentPage < 1 || size is < 1 or > 50)
+    {
+        return Results.BadRequest("page debe ser >= 1 y pageSize estar entre 1 y 50.");
+    }
+
+    var totalPages = (int)Math.Ceiling(pool.Count / (double)size);
+    var items = pool.Skip((currentPage - 1) * size).Take(size).ToList();
+
+    return Results.Ok(new PagedResult<Place>(items, currentPage, size, pool.Count, totalPages));
 })
 .WithName("GetPlaces")
-.WithSummary("Devuelve todos los lugares de GeoVista.");
+.WithSummary("Devuelve lugares: array completo o página { items, page, totalPages } con ?page=&pageSize=&category=.");
 
 app.MapGet("/api/places/categories", (HttpContext http) =>
 {

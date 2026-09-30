@@ -10,5 +10,7 @@ public sealed record Place(
     double Latitude,
     double Longitude,
     string ImageUrl,
-    string GoogleMapsUrl
+    string GoogleMapsUrl,
+    // false = sin cobertura Street View → el frontend muestra vista fotográfica.
+    bool HasStreetView = true
 );
