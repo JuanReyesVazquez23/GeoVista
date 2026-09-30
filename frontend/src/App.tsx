@@ -1,12 +1,16 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { getPlaces, getRandomPlace } from './api/placesApi';
-import type { Place } from './types';
+import { getPagedPlaces, getPlaces, getRandomPlace } from './api/placesApi';
+import { loadFavorites, toggleFavorite } from './favorites';
+import type { PagedResult, Place } from './types';
 import PlaceCard from './components/PlaceCard';
 import PlaceImage from './components/PlaceImage';
+import InstallPrompt from './components/InstallPrompt';
 
 const GlobeBackground = lazy(() => import('./components/GlobeBackground'));
 // El modal (y framer-motion con él) solo se descarga al abrir el 360°.
 const ExploreModal = lazy(() => import('./components/ExploreModal'));
+
+const PAGE_SIZE = 9;
 
 export default function App() {
   const [places, setPlaces] = useState<Place[]>([]);
@@ -15,11 +19,82 @@ export default function App() {
   const [immersive, setImmersive] = useState<Place | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [category, setCategory] = useState<string>('Todas');
+  const [favOnly, setFavOnly] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>(loadFavorites);
+  const [heroVisible, setHeroVisible] = useState(true);
+  const [page, setPage] = useState(1);
+  const [paged, setPaged] = useState<PagedResult<Place> | null>(null);
+  const [loadingPage, setLoadingPage] = useState(false);
 
   useEffect(() => {
     getPlaces()
       .then(setPlaces)
       .finally(() => setLoading(false));
+  }, []);
+
+  const toggleFav = useCallback((id: string) => {
+    setFavorites((prev) => toggleFavorite(prev, id));
+  }, []);
+
+  // El grid pagina en servidor (?page=&pageSize=&category=), salvo en modo
+  // favoritos, que pagina el catálogo local ya cargado.
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingPage(true);
+    const finish = (r: PagedResult<Place>) => {
+      if (!cancelled) setPaged(r);
+    };
+    if (favOnly) {
+      const pool = places.filter((p) => favorites.includes(p.id));
+      const totalPages = Math.max(1, Math.ceil(pool.length / PAGE_SIZE));
+      const safePage = Math.min(Math.max(page, 1), totalPages);
+      if (safePage !== page) setPage(safePage);
+      finish({
+        items: pool.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+        page: safePage,
+        pageSize: PAGE_SIZE,
+        totalCount: pool.length,
+        totalPages,
+      });
+      if (!cancelled) setLoadingPage(false);
+    } else {
+      getPagedPlaces(page, PAGE_SIZE, category === 'Todas' ? undefined : category)
+        .then(finish)
+        .finally(() => {
+          if (!cancelled) setLoadingPage(false);
+        });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [page, category, favOnly, places, favorites]);
+
+  // SEO dinámico: título y descripción según el destino abierto.
+  useEffect(() => {
+    const fallback =
+      'GeoVista — Descubre lugares del mundo al azar: monumentos, plazas, paisajes y montañas. Explóralos en 360°.';
+    const current = immersive ?? selected;
+    document.title = current
+      ? `${current.name} · ${current.country} | GeoVista`
+      : 'GeoVista — Descubre el mundo al azar';
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute('content', current ? `${current.description} Explóralo en 360° con GeoVista.` : fallback);
+  }, [immersive, selected]);
+
+  const goToPage = (n: number) => {
+    setPage(n);
+    document.getElementById('lugares')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // El globo solo anima mientras el hero está en pantalla: fuera de vista
+  // seguiría gastando GPU tras el contenido.
+  useEffect(() => {
+    const el = document.getElementById('inicio');
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => setHeroVisible(entry.isIntersecting));
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   const exploreRandom = useCallback(async (immersiveToo = false) => {
@@ -51,12 +126,7 @@ export default function App() {
   return (
     <div className="app">
       <Suspense fallback={<div className="globe-fallback" aria-hidden="true" />}>
-        <GlobeBackground
-          places={places}
-          highlight={selected}
-          onSelect={setSelected}
-          paused={immersive !== null}
-        />
+        <GlobeBackground paused={immersive !== null || !heroVisible} />
       </Suspense>
 
       <div className="grain" aria-hidden="true" />
@@ -109,12 +179,20 @@ export default function App() {
               <button
                 key={c}
                 type="button"
-                className={`pill${c === category ? ' active' : ''}`}
-                onClick={() => setCategory(c)}
+                className={`pill${c === category && !favOnly ? ' active' : ''}`}
+                onClick={() => { setCategory(c); setFavOnly(false); setPage(1); }}
               >
                 {c}
               </button>
             ))}
+            <button
+              type="button"
+              className={`pill${favOnly ? ' active' : ''}`}
+              onClick={() => { setFavOnly((v) => !v); setPage(1); }}
+              aria-pressed={favOnly}
+            >
+              ♥ Favoritos{favorites.length > 0 ? ` (${favorites.length})` : ''}
+            </button>
           </div>
           <p className="hero-meta anim" style={{ animationDelay: '0.5s' }}>
             {loading ? 'Cargando lugares…' : `${places.length} destinos · API ASP.NET Core · Imágenes en línea`}
@@ -135,10 +213,18 @@ export default function App() {
                   </p>
                   <div className="card-actions">
                     <button type="button" className="btn btn-primary" onClick={() => setImmersive(selected)}>
-                      Vivir experiencia 360°
+                      {selected.hasStreetView === false ? 'Ver galería' : 'Vivir experiencia 360°'}
                     </button>
                     <button type="button" className="btn btn-ghost" onClick={() => exploreRandom(false)}>
                       Otro destino
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => toggleFav(selected.id)}
+                      aria-pressed={favorites.includes(selected.id)}
+                    >
+                      {favorites.includes(selected.id) ? '♥ En favoritos' : '♡ Guardar'}
                     </button>
                   </div>
                 </div>
@@ -154,28 +240,77 @@ export default function App() {
         <section id="lugares" className="lugares">
           <div className="section-head">
             <h2>Lugares del mundo</h2>
-            <p>Datos servidos por <code>GET /api/places</code> · {visible.length} destinos{category !== 'Todas' ? ` · ${category}` : ''} · fotos remotas sin descargas.</p>
+            <p>Datos servidos por <code>GET /api/places?page=&pageSize=</code> · {paged?.totalCount ?? visible.length} destinos{category !== 'Todas' ? ` · ${category}` : ''} · fotos remotas sin descargas.</p>
           </div>
-          {loading ? (
+          {loading && !paged ? (
             <p className="loading">🌐 Cargando el planeta…</p>
           ) : (
-            <div className="grid">
-              {(selected ? [selected, ...visible.filter((p) => p.id !== selected.id)] : visible).map(
-                (place) => (
-                  <PlaceCard key={place.id} place={place} onExplore={setImmersive} />
-                ),
+            <>
+              {favOnly && paged && paged.totalCount === 0 ? (
+                <p className="loading">🤍 Aún no tienes favoritos — toca el ♥ de un lugar para guardarlo aquí.</p>
+              ) : (
+              <div className="grid">
+                {(paged?.items ?? []).map((place) => (
+                  <PlaceCard
+                    key={place.id}
+                    place={place}
+                    onExplore={setImmersive}
+                    isFav={favorites.includes(place.id)}
+                    onToggleFav={toggleFav}
+                  />
+                ))}
+              </div>
               )}
-            </div>
+              {paged && paged.totalPages > 1 && (
+                <nav className="pagination" aria-label="Paginación de lugares">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={page <= 1 || loadingPage}
+                    onClick={() => goToPage(page - 1)}
+                  >
+                    ← Anterior
+                  </button>
+                  {Array.from({ length: paged.totalPages }, (_, i) => i + 1).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`page-num${n === page ? ' active' : ''}`}
+                      disabled={loadingPage}
+                      onClick={() => goToPage(n)}
+                      aria-label={`Página ${n}`}
+                      aria-current={n === page ? 'page' : undefined}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={page >= paged.totalPages || loadingPage}
+                    onClick={() => goToPage(page + 1)}
+                  >
+                    Siguiente →
+                  </button>
+                </nav>
+              )}
+              {paged && paged.totalCount > 0 && (
+                <p className="page-info">
+                  Página {paged.page} de {paged.totalPages} · {paged.totalCount} destinos
+                </p>
+              )}
+            </>
           )}
         </section>
       </main>
 
       <footer className="footer">
         <p>
-          <strong>GeoVista</strong> · React + TypeScript · ASP.NET Core · Próximo: búsqueda,
-          categorías y favoritos.
+          <strong>GeoVista</strong> · React + TypeScript · ASP.NET Core · Próximo: búsqueda.
         </p>
       </footer>
+
+      <InstallPrompt />
 
       {immersive && (
         <Suspense
