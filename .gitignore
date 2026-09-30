@@ -1,0 +1,4 @@
+backend/GeoVista.Api/bin/
+backend/GeoVista.Api/obj/
+frontend/dist/
+frontend/node_modules/
