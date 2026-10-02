@@ -133,7 +133,7 @@ export default function App() {
 
       <header className="nav">
         <div className="brand">
-          <span className="brand-globe">🌍</span>
+          <img src="/logo.svg" className="brand-logo" alt="GeoVista" width="32" height="32" />
           <span className="brand-name">GeoVista</span>
         </div>
         <nav className="nav-links">

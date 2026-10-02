@@ -1,4 +1,4 @@
-# 🌍 GeoVista — Descubre el mundo al azar
+# <img src="frontend/public/logo.svg" width="40" alt="GeoVista" /> GeoVista — Descubre el mundo al azar
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
