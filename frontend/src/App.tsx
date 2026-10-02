@@ -195,7 +195,7 @@ export default function App() {
             </button>
           </div>
           <p className="hero-meta anim" style={{ animationDelay: '0.5s' }}>
-            {loading ? 'Cargando lugares…' : `${places.length} destinos · API ASP.NET Core · Imágenes en línea`}
+            {loading ? 'Preparando tu viaje…' : `${places.length} destinos alrededor del mundo`}
           </p>
         </section>
 
@@ -240,7 +240,7 @@ export default function App() {
         <section id="lugares" className="lugares">
           <div className="section-head">
             <h2>Lugares del mundo</h2>
-            <p>Datos servidos por <code>GET /api/places?page=&pageSize=</code> · {paged?.totalCount ?? visible.length} destinos{category !== 'Todas' ? ` · ${category}` : ''} · fotos remotas sin descargas.</p>
+            <p>{paged?.totalCount ?? visible.length} destinos{category !== 'Todas' ? ` de ${category.toLowerCase()}` : ' del mundo'} esperándote.</p>
           </div>
           {loading && !paged ? (
             <p className="loading">🌐 Cargando el planeta…</p>
@@ -306,7 +306,7 @@ export default function App() {
 
       <footer className="footer">
         <p>
-          <strong>GeoVista</strong> · React + TypeScript · ASP.NET Core · Próximo: búsqueda.
+          <strong>GeoVista</strong> · Descubre el mundo, un destino a la vez.
         </p>
       </footer>
 
