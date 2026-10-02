@@ -198,18 +198,6 @@
     "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=25.1961,55.275"
   },
   {
-    "id": "maldivas",
-    "name": "Islas Maldivas",
-    "country": "Maldivas",
-    "category": "Paisaje",
-    "description": "Archipiélago de 1200 islas en el Índico, con lagunas turquesas y bungalows sobre el agua.",
-    "latitude": 3.2028,
-    "longitude": 73.2207,
-    "imageUrl": "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=3.2028,73.2207",
-    "hasStreetView": false
-  },
-  {
     "id": "matterhorn",
     "name": "Matterhorn",
     "country": "Suiza",
@@ -254,18 +242,6 @@
     "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.0792,-79.0788"
   },
   {
-    "id": "sahara-merzouga",
-    "name": "Desierto del Sahara",
-    "country": "Marruecos",
-    "category": "Paisaje",
-    "description": "Las dunas de Erg Chebbi en Merzouga, con olas de arena de hasta 150 metros al amanecer.",
-    "latitude": 31.0997,
-    "longitude": -4.0113,
-    "imageUrl": "https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=31.0997,-4.0113",
-    "hasStreetView": false
-  },
-  {
     "id": "arco-triunfo",
     "name": "Arco del Triunfo",
     "country": "Francia",
@@ -297,42 +273,6 @@
     "longitude": -68.4043,
     "imageUrl": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
     "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=18.5818,-68.4043"
-  },
-  {
-    "id": "bahia-aguilas",
-    "name": "Bahía de las Águilas",
-    "country": "República Dominicana",
-    "category": "Paisaje",
-    "description": "8 km de playa virgen en Pedernales, dentro del Parque Nacional Jaragua.",
-    "latitude": 17.8603,
-    "longitude": -71.6533,
-    "imageUrl": "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=17.8603,-71.6533",
-    "hasStreetView": false
-  },
-  {
-    "id": "pico-duarte",
-    "name": "Pico Duarte",
-    "country": "República Dominicana",
-    "category": "Montaña",
-    "description": "Techo del Caribe con 3098 m en la Cordillera Central, entre bosque nublado y valles.",
-    "latitude": 19.0231,
-    "longitude": -70.9973,
-    "imageUrl": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=19.0231,-70.9973",
-    "hasStreetView": false
-  },
-  {
-    "id": "salar-uyuni",
-    "name": "Salar de Uyuni",
-    "country": "Bolivia",
-    "category": "Paisaje",
-    "description": "El desierto de sal más grande del mundo (10 000 km²), un espejo infinito en época de lluvias.",
-    "latitude": -20.1338,
-    "longitude": -67.4891,
-    "imageUrl": "https://images.unsplash.com/photo-1772722069553-d798e89f59bb?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-20.1338,-67.4891",
-    "hasStreetView": false
   },
   {
     "id": "cartagena",
@@ -367,18 +307,6 @@
     "longitude": 37.6208,
     "imageUrl": "https://images.unsplash.com/photo-1746969639590-b08a97647900?auto=format&fit=crop&w=1200&q=80",
     "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=55.7539,37.6208"
-  },
-  {
-    "id": "lago-baikal",
-    "name": "Lago Baikal",
-    "country": "Rusia",
-    "category": "Paisaje",
-    "description": "El lago más profundo (1642 m) y antiguo del planeta, con hielo turquesa en Siberia.",
-    "latitude": 53.5587,
-    "longitude": 108.165,
-    "imageUrl": "https://images.unsplash.com/photo-1746087838904-16cf9854490d?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.5587,108.165",
-    "hasStreetView": false
   },
   {
     "id": "salvador-sangre",
@@ -500,5 +428,71 @@
     "longitude": 13.6493,
     "imageUrl": "https://images.unsplash.com/photo-1527668752968-14dc70a27c95?auto=format&fit=crop&w=1200&q=80",
     "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=47.5622,13.6493"
+  },
+  {
+    "id": "torre-pisa",
+    "name": "Torre de Pisa",
+    "country": "Italia",
+    "category": "Monumento",
+    "description": "La torre inclinada de 56 m en la Piazza dei Miracoli, icono medieval de Pisa.",
+    "latitude": 43.7229,
+    "longitude": 10.3966,
+    "imageUrl": "https://images.unsplash.com/photo-1761427429938-9ab02c03db0f?auto=format&fit=crop&w=1200&q=80",
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.7229,10.3966"
+  },
+  {
+    "id": "golden-gate",
+    "name": "Golden Gate",
+    "country": "Estados Unidos",
+    "category": "Monumento",
+    "description": "El puente colgante de 1937 sobre el estrecho, símbolo de San Francisco.",
+    "latitude": 37.8199,
+    "longitude": -122.4783,
+    "imageUrl": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80",
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=37.8199,-122.4783"
+  },
+  {
+    "id": "puente-carlos",
+    "name": "Puente de Carlos",
+    "country": "Chequia",
+    "category": "Monumento",
+    "description": "Puente gótico de 1357 sobre el Moldava, con 30 estatuas barrocas.",
+    "latitude": 50.0865,
+    "longitude": 14.4114,
+    "imageUrl": "https://images.unsplash.com/photo-1541849546-216549ae216d?auto=format&fit=crop&w=1200&q=80",
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=50.0865,14.4114"
+  },
+  {
+    "id": "marina-bay",
+    "name": "Marina Bay Sands",
+    "country": "Singapur",
+    "category": "Monumento",
+    "description": "Las tres torres coronadas por la piscina infinita sobre la bahía.",
+    "latitude": 1.2836,
+    "longitude": 103.8607,
+    "imageUrl": "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=1200&q=80",
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=1.2836,103.8607"
+  },
+  {
+    "id": "shibuya",
+    "name": "Cruce de Shibuya",
+    "country": "Japón",
+    "category": "Plaza",
+    "description": "El paso peatonal más transitado del mundo, en el corazón de Tokio.",
+    "latitude": 35.6595,
+    "longitude": 139.7005,
+    "imageUrl": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=1200&q=80",
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=35.6595,139.7005"
+  },
+  {
+    "id": "cn-tower",
+    "name": "CN Tower",
+    "country": "Canadá",
+    "category": "Monumento",
+    "description": "Torre de 553 m con piso de vidrio y mirador sobre Toronto.",
+    "latitude": 43.6426,
+    "longitude": -79.3871,
+    "imageUrl": "https://images.unsplash.com/photo-1517935706615-2717063c2225?auto=format&fit=crop&w=1200&q=80",
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.6426,-79.3871"
   }
 ]

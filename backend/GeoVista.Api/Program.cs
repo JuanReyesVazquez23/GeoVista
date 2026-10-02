@@ -81,6 +81,9 @@ try
         else
             init.Places.Add(place);
     }
+    // Bajas: lo que salió del JSON sale de la DB (traduce a NOT IN en SQL).
+    var wantedIds = memoryPlaces.Select(p => p.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    init.Places.RemoveRange(init.Places.Where(p => !wantedIds.Contains(p.Id)));
     init.SaveChanges();
     useDb = true;
     app.Logger.LogInformation("SQLite activa con {Count} lugares.", init.Places.Count());
