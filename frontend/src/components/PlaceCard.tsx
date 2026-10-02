@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import type { Place } from '../types';
+import { mapsSearchUrl } from '../maps';
 import PlaceImage from './PlaceImage';
 
 interface Props {
@@ -42,7 +43,7 @@ function PlaceCard({ place, onExplore, isFav, onToggleFav }: Props) {
           </button>
           <a
             className="btn btn-ghost btn-sm"
-            href={`https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`}
+            href={mapsSearchUrl(place)}
             target="_blank"
             rel="noreferrer"
           >

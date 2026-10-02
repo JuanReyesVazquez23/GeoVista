@@ -11,8 +11,14 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function localCategories(): string[] {
-  return ['Todas', ...Array.from(new Set(fallbackPlaces.map((p) => p.category))).sort()];
+// Mismo criterio que ?category= del backend (también lo usa el modo favoritos).
+export function inCategory(p: Place, scope?: string): boolean {
+  const s = scope?.trim().toLowerCase();
+  return !s || s === 'todas' || p.category.toLowerCase() === s;
+}
+
+function localPool(scope?: string): Place[] {
+  return fallbackPlaces.filter((p) => inCategory(p, scope));
 }
 
 // Intenta el backend ASP.NET Core; si no está levantado, usa el fallback local.
@@ -24,25 +30,13 @@ export async function getPlaces(): Promise<Place[]> {
   }
 }
 
-export async function getCategories(): Promise<string[]> {
-  try {
-    const cats = await fetchJson<string[]>(`${API_BASE}/api/places/categories`);
-    return ['Todas', ...cats];
-  } catch {
-    return localCategories();
-  }
-}
-
 export async function getRandomPlace(category?: string): Promise<Place> {
   const scope = category?.trim();
   try {
     const qs = scope ? `?category=${encodeURIComponent(scope)}` : '';
     return await fetchJson<Place>(`${API_BASE}/api/places/random${qs}`);
   } catch {
-    const pool =
-      scope && scope.toLowerCase() !== 'todas'
-        ? fallbackPlaces.filter((p) => p.category.toLowerCase() === scope.toLowerCase())
-        : fallbackPlaces;
+    const pool = localPool(scope);
     const list = pool.length > 0 ? pool : fallbackPlaces;
     return list[Math.floor(Math.random() * list.length)];
   }
@@ -64,10 +58,7 @@ export async function getPagedPlaces(
   try {
     return await fetchJson<PagedResult<Place>>(`${API_BASE}/api/places?${qs}`);
   } catch {
-    const pool =
-      scope && scope.toLowerCase() !== 'todas'
-        ? fallbackPlaces.filter((p) => p.category.toLowerCase() === scope.toLowerCase())
-        : fallbackPlaces;
+    const pool = localPool(scope);
     const safeSize = Math.min(Math.max(pageSize, 1), 50);
     const safePage = Math.max(page, 1);
     const totalPages = Math.max(1, Math.ceil(pool.length / safeSize));

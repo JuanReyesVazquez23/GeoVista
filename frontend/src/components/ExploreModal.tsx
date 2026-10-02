@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { Place } from '../types';
+import { earthUrl, mapsSearchUrl } from '../maps';
 import PlaceImage from './PlaceImage';
 
 interface Props {
@@ -38,6 +39,16 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
     place.googleMapsUrl ||
     `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${place.latitude},${place.longitude}`;
 
+  const tabs: Array<{ id: View; label: string }> = hasStreetView
+    ? [
+        { id: 'street', label: '🚶 Street View 360°' },
+        { id: 'map', label: '🗺 Mapa' },
+      ]
+    : [
+        { id: 'photo', label: '📷 Vista fotográfica' },
+        { id: 'map', label: '🗺 Mapa' },
+      ];
+
   return (
     <motion.div
       className="modal-overlay"
@@ -74,36 +85,18 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
         <p className="modal-desc">{place.description}</p>
 
         <div className="view-tabs" role="tablist" aria-label="Vista">
-          {hasStreetView ? (
+          {tabs.map((t) => (
             <button
+              key={t.id}
               type="button"
               role="tab"
-              aria-selected={view === 'street'}
-              className={`tab${view === 'street' ? ' active' : ''}`}
-              onClick={() => setView('street')}
+              aria-selected={view === t.id}
+              className={`tab${view === t.id ? ' active' : ''}`}
+              onClick={() => setView(t.id)}
             >
-              🚶 Street View 360°
+              {t.label}
             </button>
-          ) : (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'photo'}
-              className={`tab${view === 'photo' ? ' active' : ''}`}
-              onClick={() => setView('photo')}
-            >
-              📷 Vista fotográfica
-            </button>
-          )}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'map'}
-            className={`tab${view === 'map' ? ' active' : ''}`}
-            onClick={() => setView('map')}
-          >
-            🗺 Mapa
-          </button>
+          ))}
         </div>
 
         <div className="embed-single">
@@ -159,7 +152,7 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
           ) : (
             <a
               className="btn btn-ghost"
-              href={`https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`}
+              href={mapsSearchUrl(place)}
               target="_blank"
               rel="noreferrer"
             >
@@ -168,7 +161,7 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
           )}
           <a
             className="btn btn-ghost"
-            href={`https://earth.google.com/web/@${place.latitude},${place.longitude},500a,2000d,35y,0h,0t,0r`}
+            href={earthUrl(place)}
             target="_blank"
             rel="noreferrer"
           >

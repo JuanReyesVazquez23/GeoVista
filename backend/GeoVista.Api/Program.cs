@@ -109,14 +109,6 @@ app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? page
     // La query es parte de la clave de caché, así que cada página se cachea aparte.
     http.Response.Headers.CacheControl = "public,max-age=3600";
 
-    var pool = Query(db, category).ToList();
-
-    // Sin parámetros: compatibilidad, devuelve el array completo.
-    if (page is null && pageSize is null)
-    {
-        return Results.Ok(pool);
-    }
-
     var currentPage = page.GetValueOrDefault(1);
     var size = pageSize.GetValueOrDefault(12);
     if (currentPage < 1 || size is < 1 or > 50)
@@ -124,10 +116,20 @@ app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? page
         return Results.BadRequest("page debe ser >= 1 y pageSize estar entre 1 y 50.");
     }
 
-    var totalPages = (int)Math.Ceiling(pool.Count / (double)size);
-    var items = pool.Skip((currentPage - 1) * size).Take(size).ToList();
+    var query = Query(db, category);
 
-    return Results.Ok(new PagedResult<Place>(items, currentPage, size, pool.Count, totalPages));
+    // Sin parámetros: compatibilidad, devuelve el array completo.
+    if (page is null && pageSize is null)
+    {
+        return Results.Ok(query.ToList());
+    }
+
+    // COUNT + página en SQL, no en memoria.
+    var total = query.Count();
+    var totalPages = (int)Math.Ceiling(total / (double)size);
+    var items = query.OrderBy(p => p.Id).Skip((currentPage - 1) * size).Take(size).ToList();
+
+    return Results.Ok(new PagedResult<Place>(items, currentPage, size, total, totalPages));
 })
 .WithName("GetPlaces")
 .WithSummary("Devuelve lugares: array completo o página { items, page, totalPages } con ?page=&pageSize=&category=.");
@@ -150,14 +152,15 @@ app.MapGet("/api/places/random", (HttpContext http, GeoVistaDb db, string? categ
     // NUNCA se cachea: cada llamada debe sortear de nuevo.
     http.Response.Headers.CacheControl = "no-store";
     // Búsqueda al azar con filtro opcional por categoría (?category=Montaña).
-    var pool = Query(db, category).ToList();
-
-    if (pool.Count == 0)
+    // COUNT + salto en SQL: no se cargan todas las filas para elegir una.
+    var query = Query(db, category);
+    var total = query.Count();
+    if (total == 0)
     {
         return Results.NotFound($"No hay lugares en la categoría '{category}'.");
     }
 
-    return Results.Ok(pool[Random.Shared.Next(pool.Count)]);
+    return Results.Ok(query.OrderBy(p => p.Id).Skip(Random.Shared.Next(total)).First());
 })
 .WithName("GetRandomPlace")
 .WithSummary("Devuelve un lugar aleatorio, opcionalmente de una categoría.");

@@ -1,7 +1,6 @@
 /* GeoVista — Cinematic dark + glassmorphism. Solo se animan transform/opacity. */
 :root {
   --bg: #04070f;
-  --bg2: #0a1226;
   --text: #cbd5e1;
   --heading: #f8fafc;
   --muted: #94a3b8;
@@ -10,6 +9,7 @@
   --glass: rgba(13, 22, 43, 0.62);
   --stroke: rgba(148, 163, 184, 0.22);
   --radius: 20px;
+  --gradient: linear-gradient(135deg, #0ea5e9, #6366f1 60%, #ec4899);
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -30,7 +30,7 @@ body {
 
 .app { position: relative; min-height: 100dvh; }
 
-/* Globo de fondo: fijo, no intercepta clics salvo los puntos (globe los gestiona). */
+/* Globo de fondo: fijo y decorativo, nunca intercepta clics. */
 .globe-bg {
   position: fixed;
   inset: 0;
@@ -46,7 +46,6 @@ body {
   pointer-events: none;
   background: radial-gradient(ellipse at 50% 45%, rgba(56, 189, 248, 0.14), transparent 60%);
 }
-.globe-bg canvas { pointer-events: auto; }
 .globe-vignette {
   position: absolute;
   inset: 0;
@@ -162,13 +161,12 @@ body {
   justify-content: center;
   gap: 8px;
   transition: transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease;
-  will-change: transform;
 }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.6; cursor: wait; }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0ea5e9, #6366f1 60%, #ec4899);
+  background: var(--gradient);
   color: #fff;
   border: none;
   box-shadow: 0 12px 40px rgba(56, 189, 248, 0.35);
@@ -284,7 +282,7 @@ body {
 }
 .page-num:hover:not(:disabled) { transform: translateY(-1px); color: var(--heading); }
 .page-num.active {
-  background: linear-gradient(135deg, #0ea5e9, #6366f1 60%, #ec4899);
+  background: var(--gradient);
   color: #fff;
   border: none;
 }
@@ -346,7 +344,7 @@ body {
 }
 .pill:hover { transform: translateY(-1px); color: var(--heading); }
 .pill.active {
-  background: linear-gradient(135deg, #0ea5e9, #6366f1 60%, #ec4899);
+  background: var(--gradient);
   color: #fff;
   border: none;
 }
@@ -486,7 +484,7 @@ body {
 }
 .tab:hover { transform: translateY(-1px); color: var(--heading); }
 .tab.active {
-  background: linear-gradient(135deg, #0ea5e9, #6366f1 60%, #ec4899);
+  background: var(--gradient);
   color: #fff;
   border: none;
 }
@@ -519,4 +517,45 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   html { scroll-behavior: auto; }
+}
+
+/* Responsive móvil: apilar CTAs, targets táctiles amplios y modal respirable. */
+@media (max-width: 640px) {
+  .nav { padding: 12px 16px; }
+  .brand-name { font-size: 19px; }
+  .nav-links { gap: 14px; }
+  .nav-links a { font-size: 13.5px; }
+
+  .hero { padding: 28px 18px 12px; min-height: 88dvh; }
+  .hero-cta { flex-direction: column; align-items: stretch; width: 100%; max-width: 340px; }
+  .hero-cta .btn { width: 100%; }
+  .btn-xl { padding: 16px 24px; font-size: 16px; }
+  .pills { margin-top: 18px; gap: 8px; }
+  .pill { padding: 10px 16px; }
+
+  .destino { padding: 6px 16px 22px; }
+  .destino-card > div { padding: 22px 20px; }
+
+  .lugares { padding: 28px 16px 52px; }
+  .grid { grid-template-columns: minmax(min(100%, 300px), 1fr); gap: 16px; }
+  .card-actions { flex-wrap: wrap; }
+  .card-actions .btn { flex: 1 1 auto; }
+
+  .modal-overlay { padding: 10px; align-items: flex-start; }
+  .modal { border-radius: 18px; max-height: 94dvh; }
+  .modal-hero { height: 200px; }
+  .modal-hero-text { left: 18px; right: 18px; bottom: 14px; }
+  .modal-desc { padding: 16px 18px 0; font-size: 14.5px; }
+  .view-tabs { padding: 14px 18px 0; flex-wrap: wrap; }
+  .tab { padding: 9px 16px; font-size: 13px; }
+  .embed-single { padding: 12px 18px 0; }
+  .embed-single iframe { height: 260px; }
+  .photo-view img { max-height: 260px; }
+  .modal-actions { padding: 16px 18px 20px; }
+  .modal-actions .btn { flex: 1 1 100%; }
+
+  .install-pill { left: 12px; right: 12px; justify-content: center; font-size: 13px; }
+
+  .pagination { gap: 6px; }
+  .page-num { width: 36px; height: 36px; }
 }
