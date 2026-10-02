@@ -68,11 +68,20 @@ try
     using var scope = app.Services.CreateScope();
     var init = scope.ServiceProvider.GetRequiredService<GeoVistaDb>();
     init.Database.EnsureCreated();
-    if (!init.Places.Any())
+    // Upsert por Id: el JSON manda siempre, así los cambios de coordenadas
+    // y lugares nuevos se propagan aunque la DB ya exista.
+    var existingIds = init.Places
+        .AsNoTracking()
+        .Select(p => p.Id)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    foreach (var place in memoryPlaces)
     {
-        init.Places.AddRange(memoryPlaces);
-        init.SaveChanges();
+        if (existingIds.Contains(place.Id))
+            init.Places.Update(place);
+        else
+            init.Places.Add(place);
     }
+    init.SaveChanges();
     useDb = true;
     app.Logger.LogInformation("SQLite activa con {Count} lugares.", init.Places.Count());
 }
