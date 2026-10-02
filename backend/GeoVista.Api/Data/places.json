@@ -148,10 +148,10 @@
     "country": "Grecia",
     "category": "Plaza",
     "description": "Isla volcánica del Egeo con casas blancas, cúpulas azules y atardeceres en Oia.",
-    "latitude": 36.3932,
-    "longitude": 25.4615,
+    "latitude": 36.4614,
+    "longitude": 25.3759,
     "imageUrl": "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=36.3932,25.4615"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=36.4614,25.3759"
   },
   {
     "id": "gran-canon",
@@ -248,10 +248,10 @@
     "country": "Canadá / Estados Unidos",
     "category": "Paisaje",
     "description": "Tres caídas monumentales en la frontera entre Ontario y Nueva York, con 168 000 m³ por minuto.",
-    "latitude": 43.0962,
-    "longitude": -79.0377,
+    "latitude": 43.0792,
+    "longitude": -79.0788,
     "imageUrl": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.0962,-79.0377"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.0792,-79.0788"
   },
   {
     "id": "sahara-merzouga",
