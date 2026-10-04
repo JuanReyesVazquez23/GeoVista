@@ -194,3 +194,8 @@ else
 {
     app.Run($"http://0.0.0.0:{port}");
 }
+
+// Visible para WebApplicationFactory<Program> en los tests de integración.
+public partial class Program
+{
+}

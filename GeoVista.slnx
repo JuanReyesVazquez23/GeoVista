@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/GeoVista.Api.Tests/GeoVista.Api.Tests.csproj" />
+    <Project Path="backend/GeoVista.Api/GeoVista.Api.csproj" />
+  </Folder>
+</Solution>
