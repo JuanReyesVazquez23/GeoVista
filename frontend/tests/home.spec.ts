@@ -73,4 +73,23 @@ test.describe('GeoVista', () => {
       await expect(page.getByRole('tab', { name: /mapa/i })).toBeVisible();
     });
   });
+
+  test('Modo tour recorre paradas con su barra', async ({ page }) => {
+    await test.step('Iniciar tour', async () => {
+      await page.getByRole('button', { name: /tour 360/i }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expect(page.getByRole('region', { name: /modo tour/i })).toBeVisible();
+    });
+
+    await test.step('Avanzar a la parada 2', async () => {
+      await expect(page.getByText('1/5', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Parada siguiente' }).click();
+      await expect(page.getByText('2/5', { exact: true })).toBeVisible();
+    });
+
+    await test.step('Salir del tour', async () => {
+      await page.getByRole('button', { name: /salir del tour/i }).click();
+      await expect(page.getByRole('region', { name: /modo tour/i })).toHaveCount(0);
+    });
+  });
 });

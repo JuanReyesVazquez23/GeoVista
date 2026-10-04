@@ -5,12 +5,15 @@ import type { PagedResult, Place } from './types';
 import PlaceCard from './components/PlaceCard';
 import PlaceImage from './components/PlaceImage';
 import InstallPrompt from './components/InstallPrompt';
+import TourBar from './components/TourBar';
 
 const GlobeBackground = lazy(() => import('./components/GlobeBackground'));
 // El modal (y framer-motion con él) solo se descarga al abrir el 360°.
 const ExploreModal = lazy(() => import('./components/ExploreModal'));
 
 const PAGE_SIZE = 9;
+const TOUR_STOPS = 5;
+const TOUR_STEP_MS = 15000;
 
 export default function App() {
   const [places, setPlaces] = useState<Place[]>([]);
@@ -22,6 +25,7 @@ export default function App() {
   const [favOnly, setFavOnly] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(loadFavorites);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [tour, setTour] = useState<{ queue: Place[]; index: number; playing: boolean } | null>(null);
   const [page, setPage] = useState(1);
   const [paged, setPaged] = useState<PagedResult<Place> | null>(null);
   const [loadingPage, setLoadingPage] = useState(false);
@@ -86,6 +90,48 @@ export default function App() {
     setPage(n);
     document.getElementById('lugares')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  // Modo tour: cola de paradas con autoplay; respeta la categoría elegida.
+  const exitTour = useCallback(() => setTour(null), []);
+
+  const startTour = useCallback(() => {
+    const pool = category === 'Todas' ? places : places.filter((p) => p.category === category);
+    const queue = [...pool].sort(() => Math.random() - 0.5).slice(0, TOUR_STOPS);
+    if (queue.length === 0) return;
+    setTour({ queue, index: 0, playing: true });
+    setSelected(queue[0]);
+    setImmersive(queue[0]);
+  }, [places, category]);
+
+  const goTour = useCallback(
+    (dir: 1 | -1) => {
+      if (!tour) return;
+      const index = Math.min(tour.queue.length - 1, Math.max(0, tour.index + dir));
+      setTour({ ...tour, index });
+      setSelected(tour.queue[index]);
+      setImmersive(tour.queue[index]);
+    },
+    [tour],
+  );
+
+  const toggleTour = useCallback(() => {
+    setTour((t) => (t ? { ...t, playing: !t.playing } : t));
+  }, []);
+
+  useEffect(() => {
+    if (!tour?.playing || !immersive) return;
+    if (tour.index >= tour.queue.length - 1) {
+      setTour({ ...tour, playing: false });
+      return;
+    }
+    const timer = window.setTimeout(() => goTour(1), TOUR_STEP_MS);
+    return () => window.clearTimeout(timer);
+  }, [tour, immersive, goTour]);
+
+  const closeImmersive = useCallback(() => {
+    exitTour();
+    setImmersive(null);
+  }, [exitTour]);
 
   // El globo solo anima mientras el hero está en pantalla: fuera de vista
   // seguiría gastando GPU tras el contenido.
@@ -168,6 +214,14 @@ export default function App() {
             <a href="#lugares" className="btn btn-ghost btn-xl">
               Ver lugares
             </a>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xl"
+              onClick={startTour}
+              disabled={loading || places.length === 0}
+            >
+              🗺 Tour 360°
+            </button>
           </div>
           <div
             className="pills anim"
@@ -322,10 +376,27 @@ export default function App() {
         >
           <ExploreModal
             place={immersive}
-            onClose={() => setImmersive(null)}
-            onRandom={() => exploreRandom(true)}
+            onClose={closeImmersive}
+            onRandom={() => {
+              exitTour();
+              exploreRandom(true);
+            }}
           />
         </Suspense>
+      )}
+
+      {tour && immersive && (
+        <TourBar
+          current={tour.index + 1}
+          total={tour.queue.length}
+          placeName={tour.queue[tour.index].name}
+          playing={tour.playing}
+          stepMs={TOUR_STEP_MS}
+          onPrev={() => goTour(-1)}
+          onNext={() => goTour(1)}
+          onToggle={toggleTour}
+          onExit={exitTour}
+        />
       )}
     </div>
   );

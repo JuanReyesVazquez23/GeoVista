@@ -321,6 +321,74 @@ body {
 }
 .install-dismiss:hover { color: var(--heading); }
 
+/* Barra del modo tour: fija, compacta y descartable. */
+.tour-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 18px;
+  max-width: calc(100vw - 24px);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--heading);
+  background: rgba(10, 19, 40, 0.92);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  animation: fade-up 0.3s ease-out both;
+}
+.tour-count { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tour-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tour-btn {
+  appearance: none;
+  border: 1px solid var(--stroke);
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--heading);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.tour-btn:hover:not(:disabled) { background: rgba(148, 163, 184, 0.2); }
+.tour-btn:disabled { opacity: 0.4; cursor: default; }
+.tour-progress {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+.tour-progress > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--gradient);
+  animation-name: tour-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes tour-fill { from { width: 0; } to { width: 100%; } }
+
 .loading { text-align: center; font-size: 18px; }
 
 .pills {
@@ -555,6 +623,8 @@ body {
   .modal-actions .btn { flex: 1 1 100%; }
 
   .install-pill { left: 12px; right: 12px; justify-content: center; font-size: 13px; }
+  .tour-name { display: none; }
+  .tour-bar { bottom: 12px; gap: 8px; }
 
   .pagination { gap: 6px; }
   .page-num { width: 36px; height: 36px; }
