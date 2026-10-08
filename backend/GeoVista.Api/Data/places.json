@@ -446,10 +446,10 @@
     "country": "Estados Unidos",
     "category": "Monumento",
     "description": "El puente colgante de 1937 sobre el estrecho, símbolo de San Francisco.",
-    "latitude": 37.8296,
-    "longitude": -122.4837,
+    "latitude": 37.8289,
+    "longitude": -122.4858,
     "imageUrl": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=37.8296,-122.4837"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=37.8289,-122.4858"
   },
   {
     "id": "puente-carlos",

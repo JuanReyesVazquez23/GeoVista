@@ -285,7 +285,7 @@ export default function App() {
             </div>
           ) : (
             <p className="destino-empty glass">
-              ✨ Tu próximo destino aparecerá aquí. Pulsa <strong>Explorar</strong> para empezar
+               Tu próximo destino aparecerá aquí. Pulsa <strong>Explorar</strong> para empezar
               la aventura.
             </p>
           )}
