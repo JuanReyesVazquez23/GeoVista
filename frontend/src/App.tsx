@@ -24,6 +24,8 @@ export default function App() {
   const [category, setCategory] = useState<string>('Todas');
   const [favOnly, setFavOnly] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(loadFavorites);
+  const [query, setQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
   const [heroVisible, setHeroVisible] = useState(true);
   const [tour, setTour] = useState<{ queue: Place[]; index: number; playing: boolean } | null>(null);
   const [page, setPage] = useState(1);
@@ -40,8 +42,14 @@ export default function App() {
     setFavorites((prev) => toggleFavorite(prev, id));
   }, []);
 
-  // El grid pagina en servidor (?page=&pageSize=&category=), salvo en modo
+  // El grid pagina en servidor (?page=&pageSize=&category=&q=), salvo en modo
   // favoritos, que pagina el catálogo local ya cargado.
+  // La búsqueda espera 300 ms tras la última tecla (debounce).
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
   useEffect(() => {
     let cancelled = false;
     setLoadingPage(true);
@@ -62,7 +70,12 @@ export default function App() {
       });
       if (!cancelled) setLoadingPage(false);
     } else {
-      getPagedPlaces(page, PAGE_SIZE, category === 'Todas' ? undefined : category)
+      getPagedPlaces(
+        page,
+        PAGE_SIZE,
+        category === 'Todas' ? undefined : category,
+        debounced || undefined,
+      )
         .then(finish)
         .finally(() => {
           if (!cancelled) setLoadingPage(false);
@@ -71,7 +84,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [page, category, favOnly, places, favorites]);
+  }, [page, category, favOnly, places, favorites, debounced]);
 
   // SEO dinámico: título y descripción según el destino abierto.
   useEffect(() => {
@@ -295,13 +308,43 @@ export default function App() {
           <div className="section-head">
             <h2>Lugares del mundo</h2>
             <p>{paged?.totalCount ?? visible.length} destinos{category !== 'Todas' ? ` de ${category.toLowerCase()}` : ' del mundo'} esperándote.</p>
+            <div className="searchbar" role="search">
+              <span aria-hidden="true">🔍</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Busca un destino, país o categoría…"
+                aria-label="Buscar destinos"
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="search-clear"
+                  onClick={() => {
+                    setQuery('');
+                    setPage(1);
+                  }}
+                  aria-label="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           {loading && !paged ? (
             <p className="loading">🌐 Cargando el planeta…</p>
           ) : (
             <>
-              {favOnly && paged && paged.totalCount === 0 ? (
-                <p className="loading">🤍 Aún no tienes favoritos — toca el ♥ de un lugar para guardarlo aquí.</p>
+              {paged && paged.totalCount === 0 ? (
+                favOnly ? (
+                  <p className="loading">🤍 Aún no tienes favoritos — toca el ♥ de un lugar para guardarlo aquí.</p>
+                ) : (
+                  <p className="loading">🔍 Sin resultados para “{debounced}”. Prueba con otro destino.</p>
+                )
               ) : (
               <div className="grid">
                 {(paged?.items ?? []).map((place) => (

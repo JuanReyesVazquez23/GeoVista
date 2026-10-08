@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using GeoVista.Api.Data;
 using GeoVista.Api.Models;
@@ -106,10 +108,24 @@ IQueryable<Place> Query(GeoVistaDb db, string? category)
     return query;
 }
 
-app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? pageSize, string? category) =>
+// Normaliza para búsqueda insensible a acentos y mayúsculas:
+// "Montaña" → "montana" (ñ → n por descomposición NFD).
+// Se aplica en memoria: con 45 filas es instantáneo y evita collations raras en SQL.
+static string Fold(string value) =>
+    string.Concat(value.Normalize(NormalizationForm.FormD)
+        .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark))
+        .ToLowerInvariant();
+
+static bool MatchesQuery(Place place, string needle) =>
+    Fold(place.Name).Contains(needle) ||
+    Fold(place.Country).Contains(needle) ||
+    Fold(place.Category).Contains(needle) ||
+    Fold(place.Description).Contains(needle);
+
+app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? pageSize, string? category, string? q) =>
 {
-    // El catálogo casi no cambia: el navegador reutiliza cada página 1 hora.
-    // La query es parte de la clave de caché, así que cada página se cachea aparte.
+    // El catálogo casi no cambia: el navegador reutiliza cada búsqueda/página 1 hora.
+    // La query es parte de la clave de caché, así que cada búsqueda se cachea aparte.
     http.Response.Headers.CacheControl = "public,max-age=3600";
 
     var currentPage = page.GetValueOrDefault(1);
@@ -121,21 +137,39 @@ app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? page
 
     var query = Query(db, category);
 
-    // Sin parámetros: compatibilidad, devuelve el array completo.
-    if (page is null && pageSize is null)
+    // Sin búsqueda: COUNT + página en SQL. Con ?q=: el filtro de acentos
+    // (Fold) va en memoria sobre la categoría ya filtrada en SQL.
+    List<Place> pool;
+    if (string.IsNullOrWhiteSpace(q))
     {
-        return Results.Ok(query.ToList());
+        // Sin parámetros: compatibilidad, devuelve el array completo.
+        if (page is null && pageSize is null)
+        {
+            return Results.Ok(query.ToList());
+        }
+
+        var total = query.Count();
+        var sqlPages = (int)Math.Ceiling(total / (double)size);
+        var sqlItems = query.OrderBy(p => p.Id).Skip((currentPage - 1) * size).Take(size).ToList();
+
+        return Results.Ok(new PagedResult<Place>(sqlItems, currentPage, size, total, sqlPages));
     }
 
-    // COUNT + página en SQL, no en memoria.
-    var total = query.Count();
-    var totalPages = (int)Math.Ceiling(total / (double)size);
-    var items = query.OrderBy(p => p.Id).Skip((currentPage - 1) * size).Take(size).ToList();
+    var needle = Fold(q.Trim());
+    pool = query.AsEnumerable().Where(p => MatchesQuery(p, needle)).ToList();
 
-    return Results.Ok(new PagedResult<Place>(items, currentPage, size, total, totalPages));
+    if (page is null && pageSize is null)
+    {
+        return Results.Ok(pool);
+    }
+
+    var totalPages = (int)Math.Ceiling(pool.Count / (double)size);
+    var items = pool.Skip((currentPage - 1) * size).Take(size).ToList();
+
+    return Results.Ok(new PagedResult<Place>(items, currentPage, size, pool.Count, totalPages));
 })
 .WithName("GetPlaces")
-.WithSummary("Devuelve lugares: array completo o página { items, page, totalPages } con ?page=&pageSize=&category=.");
+.WithSummary("Devuelve lugares: array completo o página { items, page, totalPages } con ?page=&pageSize=&category=&q=.");
 
 app.MapGet("/api/places/categories", (HttpContext http, GeoVistaDb db) =>
 {

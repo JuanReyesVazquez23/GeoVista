@@ -92,4 +92,19 @@ test.describe('GeoVista', () => {
       await expect(page.getByRole('region', { name: /modo tour/i })).toHaveCount(0);
     });
   });
+
+  test('Buscar insensible a acentos y mayúsculas', async ({ page }) => {
+    const search = page.getByRole('searchbox', { name: /buscar destinos/i });
+
+    await test.step('Buscar "montana" sin tilde', async () => {
+      await search.fill('montana');
+      await expect(page.locator('.grid .card')).toHaveCount(4);
+    });
+
+    await test.step('Buscar "PISA" en mayúsculas', async () => {
+      await search.fill('PISA');
+      await expect(page.locator('.grid .card')).toHaveCount(1);
+      await expect(page.getByRole('heading', { name: /torre de pisa/i })).toBeVisible();
+    });
+  });
 });

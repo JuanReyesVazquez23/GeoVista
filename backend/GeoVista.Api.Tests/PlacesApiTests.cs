@@ -121,4 +121,27 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task WhenSearchWithoutAccents_ThenMatchesAccentedPlaces()
+    {
+        var root = await GetJsonAsync(_client, "/api/places?q=montana&page=1&pageSize=9");
+
+        Assert.Equal(4, root.GetProperty("totalCount").GetInt32());
+        foreach (var item in root.GetProperty("items").EnumerateArray())
+        {
+            Assert.Equal("Montaña", item.GetProperty("category").GetString());
+        }
+    }
+
+    [Fact]
+    public async Task WhenSearchUppercase_ThenFindsPlace()
+    {
+        var root = await GetJsonAsync(_client, "/api/places?q=PISA&page=1&pageSize=9");
+
+        Assert.Equal(1, root.GetProperty("totalCount").GetInt32());
+        Assert.Equal(
+            "torre-pisa",
+            root.GetProperty("items").EnumerateArray().First().GetProperty("id").GetString());
+    }
 }
