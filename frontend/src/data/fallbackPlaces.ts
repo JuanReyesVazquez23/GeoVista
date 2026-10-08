@@ -330,10 +330,10 @@ export const fallbackPlaces: Place[] = [
     country: 'Noruega',
     category: 'Paisaje',
     description: 'El mejor escenario ártico para la aurora boreal, entre fiordos y noches polares.',
-    latitude: 69.6496,
-    longitude: 18.956,
+    latitude: 69.6932,
+    longitude: 18.6158,
     imageUrl: 'https://images.unsplash.com/photo-1483347756197-71ef80e95f73?auto=format&fit=crop&w=1200&q=80',
-    googleMapsUrl: 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=69.6496,18.956',
+    googleMapsUrl: 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=69.6932,18.6158',
   },
   {
     id: 'lago-moraine',
