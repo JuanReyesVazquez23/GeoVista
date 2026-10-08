@@ -358,10 +358,10 @@
     "country": "Turquía",
     "category": "Monumento",
     "description": "Basílica bizantina de 537 d.C. en Estambul, con su cúpula de 31 metros.",
-    "latitude": 41.0086,
-    "longitude": 28.9756,
+    "latitude": 41.0069,
+    "longitude": 28.9777,
     "imageUrl": "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.0086,28.9756"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.0069,28.9777"
   },
   {
     "id": "montana-mesa",
@@ -435,10 +435,10 @@
     "country": "Italia",
     "category": "Monumento",
     "description": "La torre inclinada de 56 m en la Piazza dei Miracoli, icono medieval de Pisa.",
-    "latitude": 43.7223,
-    "longitude": 10.3972,
+    "latitude": 43.7231,
+    "longitude": 10.3973,
     "imageUrl": "https://images.unsplash.com/photo-1761427429938-9ab02c03db0f?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.7223,10.3972"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.7231,10.3973"
   },
   {
     "id": "golden-gate",
