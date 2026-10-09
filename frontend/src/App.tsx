@@ -10,6 +10,8 @@ import TourBar from './components/TourBar';
 const GlobeBackground = lazy(() => import('./components/GlobeBackground'));
 // El modal (y framer-motion con él) solo se descarga al abrir el 360°.
 const ExploreModal = lazy(() => import('./components/ExploreModal'));
+// El panel admin también va en lazy: solo lo descarga quien lo abre.
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
 
 const PAGE_SIZE = 9;
 const TOUR_STOPS = 5;
@@ -28,6 +30,9 @@ export default function App() {
   const [debounced, setDebounced] = useState('');
   const [heroVisible, setHeroVisible] = useState(true);
   const [tour, setTour] = useState<{ queue: Place[]; index: number; playing: boolean } | null>(null);
+  const [logoClicks, setLogoClicks] = useState(0);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem('gv-admin-key') ?? '');
   const [page, setPage] = useState(1);
   const [paged, setPaged] = useState<PagedResult<Place> | null>(null);
   const [loadingPage, setLoadingPage] = useState(false);
@@ -98,6 +103,39 @@ export default function App() {
       .querySelector('meta[name="description"]')
       ?.setAttribute('content', current ? `${current.description} Explóralo en 360° con GeoVista.` : fallback);
   }, [immersive, selected]);
+
+  // Easter egg: 10 clics en el logo abren el panel admin (el conteo resetea tras 2.5 s).
+  useEffect(() => {
+    if (logoClicks === 0) return;
+    if (logoClicks >= 10) {
+      setLogoClicks(0);
+      setAdminOpen(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setLogoClicks(0), 2500);
+    return () => window.clearTimeout(timer);
+  }, [logoClicks]);
+
+  const changeAdminKey = useCallback((key: string) => {
+    setAdminKey(key);
+    if (key) sessionStorage.setItem('gv-admin-key', key);
+    else sessionStorage.removeItem('gv-admin-key');
+  }, []);
+
+  // Tras alta/baja/edición: recarga catálogo + primera página del grid.
+  const reloadAll = useCallback(async () => {
+    const fresh = await getPlaces();
+    setPlaces(fresh);
+    setPage(1);
+    setPaged(
+      await getPagedPlaces(
+        1,
+        PAGE_SIZE,
+        category === 'Todas' ? undefined : category,
+        debounced || undefined,
+      ),
+    );
+  }, [category, debounced]);
 
   const goToPage = (n: number) => {
     setPage(n);
@@ -192,7 +230,16 @@ export default function App() {
 
       <header className="nav">
         <div className="brand">
-          <img src="/logo.svg" className="brand-logo" alt="GeoVista" width="32" height="32" />
+          <img
+            src="/logo.svg"
+            className="brand-logo"
+            alt="GeoVista"
+            width="32"
+            height="32"
+            title="GeoVista"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setLogoClicks((c) => c + 1)}
+          />
           <span className="brand-name">GeoVista</span>
         </div>
         <nav className="nav-links">
@@ -408,6 +455,18 @@ export default function App() {
       </footer>
 
       <InstallPrompt />
+
+      {adminOpen && (
+        <Suspense fallback={null}>
+          <AdminPanel
+            places={places}
+            adminKey={adminKey}
+            onKeyChange={changeAdminKey}
+            onSaved={reloadAll}
+            onClose={() => setAdminOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {immersive && (
         <Suspense

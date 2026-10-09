@@ -1,8 +1,11 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using GeoVista.Api.Data;
 using GeoVista.Api.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -122,6 +125,69 @@ static bool MatchesQuery(Place place, string needle) =>
     Fold(place.Category).Contains(needle) ||
     Fold(place.Description).Contains(needle);
 
+// Administración con clave compartida (header X-Admin-Key == env ADMIN_KEY).
+// Sin ADMIN_KEY configurado, la escritura queda deshabilitada (solo lectura).
+static bool IsAdmin(string? provided)
+{
+    var expected = Environment.GetEnvironmentVariable("ADMIN_KEY");
+    return !string.IsNullOrWhiteSpace(expected) && provided == expected;
+}
+
+static IResult? RequireAdmin(string? provided) =>
+    IsAdmin(provided)
+        ? null
+        : Results.Text("No autorizado: falta la clave de administrador o no está configurada.", statusCode: 403);
+
+static bool IsHttpUrl(string? url) =>
+    Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+    (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
+static string? ValidatePlace(Place place, bool isNew, Func<string, bool> exists)
+{
+    if (string.IsNullOrWhiteSpace(place.Id) ||
+        !Regex.IsMatch(place.Id.Trim(), "^[a-z0-9]+(?:-[a-z0-9]+)*$"))
+    {
+        return "Id inválido: usa minúsculas, números y guiones (p. ej. torre-pisa).";
+    }
+    if (string.IsNullOrWhiteSpace(place.Name)) return "Name es obligatorio.";
+    if (string.IsNullOrWhiteSpace(place.Country)) return "Country es obligatorio.";
+    if (string.IsNullOrWhiteSpace(place.Category)) return "Category es obligatoria.";
+    if (place.Latitude is < -90 or > 90) return "Latitude debe estar entre -90 y 90.";
+    if (place.Longitude is < -180 or > 180) return "Longitude debe estar entre -180 y 180.";
+    if (!IsHttpUrl(place.ImageUrl)) return "ImageUrl debe ser una URL http(s) válida.";
+    if (!IsHttpUrl(place.GoogleMapsUrl)) return "GoogleMapsUrl debe ser una URL http(s) válida.";
+    if (isNew && exists(place.Id)) return $"Ya existe un lugar con id '{place.Id}'.";
+    return null;
+}
+
+var jsonLock = new object();
+
+// El JSON sigue siendo el origen para el próximo arranque: cada escritura
+// se refleja en disco. Si el disco falla, el cambio queda solo en la DB (se avisa en logs).
+void ApplyToJson(Action<List<Place>> mutate, ILogger logger)
+{
+    try
+    {
+        lock (jsonLock)
+        {
+            var catalog = JsonSerializer.Deserialize<List<Place>>(
+                File.ReadAllText(jsonPath), jsonOptions) ?? [];
+            mutate(catalog);
+            File.WriteAllText(jsonPath, JsonSerializer.Serialize(catalog, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                // Sin escapes \u00XX: el archivo sigue legible en UTF-8 y el diff es mínimo.
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            }));
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "No se pudo actualizar places.json; el cambio quedó solo en la DB.");
+    }
+}
+
 app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? pageSize, string? category, string? q) =>
 {
     // El catálogo casi no cambia: el navegador reutiliza cada búsqueda/página 1 hora.
@@ -217,6 +283,91 @@ app.MapGet("/api/places/{id}", (HttpContext http, GeoVistaDb db, string id) =>
 })
 .WithName("GetPlaceById")
 .WithSummary("Devuelve un lugar por su id.");
+
+app.MapPost("/api/places", ([FromHeader(Name = "X-Admin-Key")] string? adminKey, GeoVistaDb db, Place place) =>
+{
+    if (RequireAdmin(adminKey) is { } denied) return denied;
+    if (ValidatePlace(place, true, id => Query(db, null).Any(p => p.Id.ToLower() == id.Trim().ToLowerInvariant())) is { } error)
+    {
+        return Results.BadRequest(error);
+    }
+
+    if (useDb)
+    {
+        db.Places.Add(place);
+        db.SaveChanges();
+    }
+    else
+    {
+        memoryPlaces.Add(place);
+    }
+    ApplyToJson(catalog => catalog.Add(place), app.Logger);
+
+    return Results.Created($"/api/places/{place.Id}", place);
+})
+.WithName("CreatePlace")
+.WithSummary("Crea un lugar (requiere header X-Admin-Key).");
+
+app.MapPut("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? adminKey, GeoVistaDb db, string id, Place place) =>
+{
+    if (RequireAdmin(adminKey) is { } denied) return denied;
+    if (!string.Equals(place.Id, id, StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.BadRequest("El id del cuerpo debe coincidir con el de la ruta.");
+    }
+    if (ValidatePlace(place, false, _ => false) is { } error)
+    {
+        return Results.BadRequest(error);
+    }
+
+    var lowered = id.Trim().ToLowerInvariant();
+    if (useDb)
+    {
+        var existing = db.Places.FirstOrDefault(p => p.Id.ToLower() == lowered);
+        if (existing is null) return Results.NotFound($"No existe un lugar con id '{id}'.");
+        db.Entry(existing).CurrentValues.SetValues(place);
+        db.SaveChanges();
+    }
+    else
+    {
+        var index = memoryPlaces.FindIndex(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (index < 0) return Results.NotFound($"No existe un lugar con id '{id}'.");
+        memoryPlaces[index] = place;
+    }
+    ApplyToJson(catalog =>
+    {
+        var index = catalog.FindIndex(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0) catalog[index] = place; else catalog.Add(place);
+    }, app.Logger);
+
+    return Results.Ok(place);
+})
+.WithName("UpdatePlace")
+.WithSummary("Actualiza un lugar (requiere header X-Admin-Key).");
+
+app.MapDelete("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? adminKey, GeoVistaDb db, string id) =>
+{
+    if (RequireAdmin(adminKey) is { } denied) return denied;
+
+    var lowered = id.Trim().ToLowerInvariant();
+    if (useDb)
+    {
+        var existing = db.Places.FirstOrDefault(p => p.Id.ToLower() == lowered);
+        if (existing is null) return Results.NotFound($"No existe un lugar con id '{id}'.");
+        db.Places.Remove(existing);
+        db.SaveChanges();
+    }
+    else
+    {
+        var removed = memoryPlaces.RemoveAll(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (removed == 0) return Results.NotFound($"No existe un lugar con id '{id}'.");
+    }
+    ApplyToJson(catalog => catalog.RemoveAll(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)), app.Logger);
+
+    return Results.NoContent();
+})
+.WithName("DeletePlace")
+.WithSummary("Elimina un lugar (requiere header X-Admin-Key).");
 
 // Puerto inyectado por el hosting ($PORT en contenedores; IIS lo ignora).
 var port = Environment.GetEnvironmentVariable("PORT");

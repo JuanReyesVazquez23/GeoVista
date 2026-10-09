@@ -8,7 +8,8 @@
     "latitude": 48.8629,
     "longitude": 2.2873,
     "imageUrl": "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=48.8629,2.2873"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=48.8629,2.2873",
+    "hasStreetView": true
   },
   {
     "id": "machu-picchu",
@@ -19,7 +20,8 @@
     "latitude": -13.1631,
     "longitude": -72.545,
     "imageUrl": "https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-13.1631,-72.545"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-13.1631,-72.545",
+    "hasStreetView": true
   },
   {
     "id": "gran-muralla",
@@ -30,7 +32,8 @@
     "latitude": 40.4319,
     "longitude": 116.5704,
     "imageUrl": "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.4319,116.5704"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.4319,116.5704",
+    "hasStreetView": true
   },
   {
     "id": "estatua-libertad",
@@ -41,7 +44,8 @@
     "latitude": 40.6892,
     "longitude": -74.0445,
     "imageUrl": "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.6892,-74.0445"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.6892,-74.0445",
+    "hasStreetView": true
   },
   {
     "id": "piramides-giza",
@@ -52,7 +56,8 @@
     "latitude": 29.9792,
     "longitude": 31.1342,
     "imageUrl": "https://images.unsplash.com/photo-1539768942893-daf53e448371?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=29.9792,31.1342"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=29.9792,31.1342",
+    "hasStreetView": true
   },
   {
     "id": "coliseo",
@@ -63,7 +68,8 @@
     "latitude": 41.8911,
     "longitude": 12.4922,
     "imageUrl": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.8911,12.4922"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.8911,12.4922",
+    "hasStreetView": true
   },
   {
     "id": "sagrada-familia",
@@ -74,7 +80,8 @@
     "latitude": 41.4039,
     "longitude": 2.1755,
     "imageUrl": "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.4039,2.1755"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.4039,2.1755",
+    "hasStreetView": true
   },
   {
     "id": "monte-fuji",
@@ -85,7 +92,8 @@
     "latitude": 35.5013,
     "longitude": 138.8014,
     "imageUrl": "https://images.unsplash.com/photo-1679224871886-2e67940f937d?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=35.5013,138.8014"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=35.5013,138.8014",
+    "hasStreetView": true
   },
   {
     "id": "cataratas-iguazu",
@@ -96,7 +104,8 @@
     "latitude": -25.6953,
     "longitude": -54.4367,
     "imageUrl": "https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-25.6953,-54.4367"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-25.6953,-54.4367",
+    "hasStreetView": true
   },
   {
     "id": "opera-sidney",
@@ -107,7 +116,8 @@
     "latitude": -33.8574,
     "longitude": 151.214,
     "imageUrl": "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-33.8574,151.214"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-33.8574,151.214",
+    "hasStreetView": true
   },
   {
     "id": "chichen-itza",
@@ -118,7 +128,8 @@
     "latitude": 20.6839,
     "longitude": -88.5678,
     "imageUrl": "https://images.unsplash.com/photo-1512813195386-6cf811ad3542?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=20.6839,-88.5678"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=20.6839,-88.5678",
+    "hasStreetView": true
   },
   {
     "id": "taj-mahal",
@@ -129,7 +140,8 @@
     "latitude": 27.1739,
     "longitude": 78.0426,
     "imageUrl": "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=27.1739,78.0426"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=27.1739,78.0426",
+    "hasStreetView": true
   },
   {
     "id": "cristo-redentor",
@@ -140,7 +152,8 @@
     "latitude": -22.9519,
     "longitude": -43.2105,
     "imageUrl": "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-22.9519,-43.2105"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-22.9519,-43.2105",
+    "hasStreetView": true
   },
   {
     "id": "santorini",
@@ -151,7 +164,8 @@
     "latitude": 36.4614,
     "longitude": 25.3759,
     "imageUrl": "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=36.4614,25.3759"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=36.4614,25.3759",
+    "hasStreetView": true
   },
   {
     "id": "gran-canon",
@@ -162,7 +176,8 @@
     "latitude": 36.1069,
     "longitude": -112.1129,
     "imageUrl": "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=36.1069,-112.1129"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=36.1069,-112.1129",
+    "hasStreetView": true
   },
   {
     "id": "big-ben",
@@ -173,7 +188,8 @@
     "latitude": 51.5008,
     "longitude": -0.1228,
     "imageUrl": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=51.5008,-0.1228"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=51.5008,-0.1228",
+    "hasStreetView": true
   },
   {
     "id": "times-square",
@@ -184,7 +200,8 @@
     "latitude": 40.758,
     "longitude": -73.9855,
     "imageUrl": "https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.758,-73.9855"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.758,-73.9855",
+    "hasStreetView": true
   },
   {
     "id": "burj-khalifa",
@@ -195,7 +212,8 @@
     "latitude": 25.1961,
     "longitude": 55.275,
     "imageUrl": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=25.1961,55.275"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=25.1961,55.275",
+    "hasStreetView": true
   },
   {
     "id": "matterhorn",
@@ -206,7 +224,8 @@
     "latitude": 46.0255,
     "longitude": 7.7562,
     "imageUrl": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=46.0255,7.7562"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=46.0255,7.7562",
+    "hasStreetView": true
   },
   {
     "id": "torres-del-paine",
@@ -217,7 +236,8 @@
     "latitude": -50.9423,
     "longitude": -72.9495,
     "imageUrl": "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-50.9423,-72.9495"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-50.9423,-72.9495",
+    "hasStreetView": true
   },
   {
     "id": "seljalandsfoss",
@@ -228,7 +248,8 @@
     "latitude": 63.6156,
     "longitude": -19.9886,
     "imageUrl": "https://images.unsplash.com/photo-1504893524553-b855bce32c67?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=63.6156,-19.9886"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=63.6156,-19.9886",
+    "hasStreetView": true
   },
   {
     "id": "niagara",
@@ -239,7 +260,8 @@
     "latitude": 43.0792,
     "longitude": -79.0788,
     "imageUrl": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.0792,-79.0788"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.0792,-79.0788",
+    "hasStreetView": true
   },
   {
     "id": "arco-triunfo",
@@ -250,7 +272,8 @@
     "latitude": 48.8734,
     "longitude": 2.294,
     "imageUrl": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=48.8734,2.294"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=48.8734,2.294",
+    "hasStreetView": true
   },
   {
     "id": "zona-colonial",
@@ -261,7 +284,8 @@
     "latitude": 18.4738,
     "longitude": -69.8833,
     "imageUrl": "https://images.unsplash.com/photo-1750691434437-ceaab74254a0?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=18.4738,-69.8833"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=18.4738,-69.8833",
+    "hasStreetView": true
   },
   {
     "id": "punta-cana",
@@ -272,7 +296,8 @@
     "latitude": 18.5818,
     "longitude": -68.4043,
     "imageUrl": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=18.5818,-68.4043"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=18.5818,-68.4043",
+    "hasStreetView": true
   },
   {
     "id": "cartagena",
@@ -283,7 +308,8 @@
     "latitude": 10.4242,
     "longitude": -75.5366,
     "imageUrl": "https://images.unsplash.com/photo-1633394027858-fff49145f120?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=10.4242,-75.5366"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=10.4242,-75.5366",
+    "hasStreetView": true
   },
   {
     "id": "perito-moreno",
@@ -306,7 +332,8 @@
     "latitude": 55.7539,
     "longitude": 37.6208,
     "imageUrl": "https://images.unsplash.com/photo-1746969639590-b08a97647900?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=55.7539,37.6208"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=55.7539,37.6208",
+    "hasStreetView": true
   },
   {
     "id": "salvador-sangre",
@@ -317,7 +344,8 @@
     "latitude": 59.9401,
     "longitude": 30.3289,
     "imageUrl": "https://images.unsplash.com/photo-1554202218-20ee1af0fb17?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=59.9401,30.3289"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=59.9401,30.3289",
+    "hasStreetView": true
   },
   {
     "id": "aurora-tromso",
@@ -328,7 +356,8 @@
     "latitude": 69.6932,
     "longitude": 18.6158,
     "imageUrl": "https://images.unsplash.com/photo-1483347756197-71ef80e95f73?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=69.6932,18.6158"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=69.6932,18.6158",
+    "hasStreetView": true
   },
   {
     "id": "lago-moraine",
@@ -339,7 +368,8 @@
     "latitude": 51.3217,
     "longitude": -116.186,
     "imageUrl": "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=51.3217,-116.186"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=51.3217,-116.186",
+    "hasStreetView": true
   },
   {
     "id": "acropolis",
@@ -350,7 +380,8 @@
     "latitude": 37.9721,
     "longitude": 23.7232,
     "imageUrl": "https://images.unsplash.com/photo-1555993539-1732b0258235?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=37.9721,23.7232"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=37.9721,23.7232",
+    "hasStreetView": true
   },
   {
     "id": "santa-sofia",
@@ -361,7 +392,8 @@
     "latitude": 41.0069,
     "longitude": 28.9777,
     "imageUrl": "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.0069,28.9777"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=41.0069,28.9777",
+    "hasStreetView": true
   },
   {
     "id": "montana-mesa",
@@ -372,7 +404,8 @@
     "latitude": -33.9628,
     "longitude": 18.4098,
     "imageUrl": "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-33.9628,18.4098"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-33.9628,18.4098",
+    "hasStreetView": true
   },
   {
     "id": "amboseli",
@@ -383,7 +416,8 @@
     "latitude": -2.652,
     "longitude": 37.2606,
     "imageUrl": "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-2.652,37.2606"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=-2.652,37.2606",
+    "hasStreetView": true
   },
   {
     "id": "petra",
@@ -394,7 +428,8 @@
     "latitude": 30.3222,
     "longitude": 35.4511,
     "imageUrl": "https://images.unsplash.com/photo-1742921753850-36c219d3cc14?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=30.3222,35.4511"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=30.3222,35.4511",
+    "hasStreetView": true
   },
   {
     "id": "angkor-wat",
@@ -405,7 +440,8 @@
     "latitude": 13.4122,
     "longitude": 103.8664,
     "imageUrl": "https://images.unsplash.com/photo-1566706546199-a93ba33ce9f7?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=13.4122,103.8664"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=13.4122,103.8664",
+    "hasStreetView": true
   },
   {
     "id": "neuschwanstein",
@@ -416,7 +452,8 @@
     "latitude": 47.555,
     "longitude": 10.7494,
     "imageUrl": "https://images.unsplash.com/photo-1534313314376-a72289b6181e?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=47.555,10.7494"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=47.555,10.7494",
+    "hasStreetView": true
   },
   {
     "id": "hallstatt",
@@ -427,7 +464,8 @@
     "latitude": 47.5646,
     "longitude": 13.65,
     "imageUrl": "https://images.unsplash.com/photo-1527668752968-14dc70a27c95?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=47.5646,13.65"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=47.5646,13.65",
+    "hasStreetView": true
   },
   {
     "id": "torre-pisa",
@@ -438,7 +476,8 @@
     "latitude": 43.7231,
     "longitude": 10.3973,
     "imageUrl": "https://images.unsplash.com/photo-1761427429938-9ab02c03db0f?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.7231,10.3973"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.7231,10.3973",
+    "hasStreetView": true
   },
   {
     "id": "golden-gate",
@@ -449,7 +488,8 @@
     "latitude": 37.8289,
     "longitude": -122.4858,
     "imageUrl": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=37.8289,-122.4858"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=37.8289,-122.4858",
+    "hasStreetView": true
   },
   {
     "id": "puente-carlos",
@@ -460,7 +500,8 @@
     "latitude": 50.0865,
     "longitude": 14.4114,
     "imageUrl": "https://images.unsplash.com/photo-1541849546-216549ae216d?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=50.0865,14.4114"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=50.0865,14.4114",
+    "hasStreetView": true
   },
   {
     "id": "marina-bay",
@@ -471,7 +512,8 @@
     "latitude": 1.2836,
     "longitude": 103.8607,
     "imageUrl": "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=1.2836,103.8607"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=1.2836,103.8607",
+    "hasStreetView": true
   },
   {
     "id": "shibuya",
@@ -482,7 +524,8 @@
     "latitude": 35.6591,
     "longitude": 139.7005,
     "imageUrl": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=35.6591,139.7005"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=35.6591,139.7005",
+    "hasStreetView": true
   },
   {
     "id": "cn-tower",
@@ -493,6 +536,7 @@
     "latitude": 43.6316,
     "longitude": -79.3579,
     "imageUrl": "https://images.unsplash.com/photo-1517935706615-2717063c2225?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.6316,-79.3579"
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=43.6316,-79.3579",
+    "hasStreetView": true
   }
 ]

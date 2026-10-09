@@ -144,4 +144,92 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
             "torre-pisa",
             root.GetProperty("items").EnumerateArray().First().GetProperty("id").GetString());
     }
+
+    private static void UseAdminKey(string? value)
+    {
+        // La clave se lee por request: fijarla aquí es determinista
+        // (los tests de una clase no corren en paralelo entre sí).
+        Environment.SetEnvironmentVariable("ADMIN_KEY", value);
+    }
+
+    private static HttpRequestMessage AdminRequest(HttpMethod method, string url, string? key, object? body = null)
+    {
+        var request = new HttpRequestMessage(method, url);
+        if (key is not null) request.Headers.Add("X-Admin-Key", key);
+        if (body is not null)
+        {
+            request.Content = new StringContent(
+                JsonSerializer.Serialize(body), System.Text.Encoding.UTF8, "application/json");
+        }
+        return request;
+    }
+
+    [Fact]
+    public async Task WhenPostWithoutKey_ThenReturnsForbidden()
+    {
+        using var response = await _client.SendAsync(
+            AdminRequest(HttpMethod.Post, "/api/places", null, new { }));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task WhenPostWithInvalidBody_ThenReturnsBadRequest()
+    {
+        UseAdminKey("test-admin-key");
+        try
+        {
+            using var response = await _client.SendAsync(AdminRequest(
+                HttpMethod.Post, "/api/places", "test-admin-key", new { id = "MAL ID", name = "" }));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+        finally
+        {
+            UseAdminKey(null);
+        }
+    }
+
+    [Fact]
+    public async Task WhenAdminCrudRoundtrip_ThenPersistsAndDeletes()
+    {
+        const string id = "test-admin-lugar";
+        UseAdminKey("test-admin-key");
+        try
+        {
+            var place = new
+            {
+                id,
+                name = "Lugar de Prueba",
+                country = "Testlandia",
+                category = "Plaza",
+                description = "Creado por el test de admin.",
+                latitude = 10.0,
+                longitude = 20.0,
+                imageUrl = "https://example.com/foto.jpg",
+                googleMapsUrl = "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=10,20",
+                hasStreetView = true,
+            };
+
+            using var created = await _client.SendAsync(AdminRequest(HttpMethod.Post, "/api/places", "test-admin-key", place));
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+            var fetched = await GetJsonAsync(_client, $"/api/places/{id}");
+            Assert.Equal("Lugar de Prueba", fetched.GetProperty("name").GetString());
+
+            var updated = place with { name = "Lugar de Prueba Editado" };
+            using var put = await _client.SendAsync(AdminRequest(HttpMethod.Put, $"/api/places/{id}", "test-admin-key", updated));
+            Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+
+            using var deleted = await _client.SendAsync(AdminRequest(HttpMethod.Delete, $"/api/places/{id}", "test-admin-key"));
+            Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+
+            using var gone = await _client.GetAsync($"/api/places/{id}");
+            Assert.Equal(HttpStatusCode.NotFound, gone.StatusCode);
+        }
+        finally
+        {
+            UseAdminKey(null);
+        }
+    }
 }

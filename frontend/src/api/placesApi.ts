@@ -34,6 +34,42 @@ export function matchesQuery(p: Place, needle: string): boolean {
   );
 }
 
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+// Mutaciones del panel admin (header X-Admin-Key).
+async function mutate(
+  url: string,
+  method: 'POST' | 'PUT' | 'DELETE',
+  key: string,
+  body?: Place,
+): Promise<Place | null> {
+  const res = await fetch(`${API_BASE}${url}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': key },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return res.status === 204 ? null : ((await res.json()) as Place);
+}
+
+export function createPlace(place: Place, key: string): Promise<Place | null> {
+  return mutate('/api/places', 'POST', key, place);
+}
+
+export function updatePlace(place: Place, key: string): Promise<Place | null> {
+  return mutate(`/api/places/${place.id}`, 'PUT', key, place);
+}
+
+export function deletePlace(id: string, key: string): Promise<Place | null> {
+  return mutate(`/api/places/${id}`, 'DELETE', key);
+}
+
 function localPool(scope?: string): Place[] {
   return fallbackPlaces.filter((p) => inCategory(p, scope));
 }

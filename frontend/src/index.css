@@ -355,6 +355,62 @@ body {
 }
 .install-dismiss:hover { color: var(--heading); }
 
+/* Panel admin: reutiliza .modal/.btn, solo suma lista y formulario. */
+.admin-modal { padding: 24px 28px 28px; }
+.admin-head { display: flex; align-items: center; justify-content: space-between; position: relative; }
+.admin-head h2 { margin: 0; color: var(--heading); font-size: 22px; }
+.admin-head .modal-close { position: static; flex: none; }
+.admin-modal .modal-desc { padding: 12px 0 0; }
+.admin-modal .modal-actions { padding: 16px 0 0; }
+.admin-error {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: #fda4af;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin: 14px 0 0;
+  font-size: 14px;
+}
+.admin-key-form { display: flex; gap: 10px; margin-top: 16px; }
+.admin-key-form input { flex: 1; min-width: 0; }
+.admin-key-form input, .field input, .field textarea {
+  background: rgba(4, 7, 15, 0.6);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  color: var(--heading);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.admin-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 46dvh;
+  overflow-y: auto;
+}
+.admin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  background: rgba(148, 163, 184, 0.06);
+}
+.admin-row strong { color: var(--heading); font-size: 15px; }
+.admin-meta { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.field-wide { grid-column: 1 / -1; }
+.field input:disabled { opacity: 0.55; }
+.field-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text); grid-column: 1 / -1; }
+.field-check input { width: 18px; height: 18px; accent-color: #22d3ee; }
+
 /* Barra del modo tour: fija, compacta y descartable. */
 .tour-bar {
   position: fixed;
@@ -659,6 +715,9 @@ body {
   .install-pill { left: 12px; right: 12px; justify-content: center; font-size: 13px; }
   .tour-name { display: none; }
   .tour-bar { bottom: 12px; gap: 8px; }
+  .admin-modal { padding: 18px; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .admin-row { flex-direction: column; align-items: stretch; }
 
   .pagination { gap: 6px; }
   .page-num { width: 36px; height: 36px; }
