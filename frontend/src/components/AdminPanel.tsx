@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Place } from '../types';
-import { ApiError, createPlace, deletePlace, updatePlace } from '../api/placesApi';
+import { ApiError, createPlace, deletePlace, updatePlace, verifyAdminKey } from '../api/placesApi';
 
 interface Props {
   places: Place[];
@@ -42,6 +42,8 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [keyInput, setKeyInput] = useState('');
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [checkingKey, setCheckingKey] = useState(false);
 
   const categories = useMemo(
     () => Array.from(new Set(places.map((p) => p.category))).sort(),
@@ -59,11 +61,25 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
             </button>
           </div>
           <p className="modal-desc">Introduce la clave de administrador (variable ADMIN_KEY del backend).</p>
+          {keyError && (
+            <p className="admin-error" role="alert">
+              {keyError}
+            </p>
+          )}
           <form
             className="admin-key-form"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              onKeyChange(keyInput.trim());
+              const key = keyInput.trim();
+              if (!key) return;
+              setKeyError(null);
+              setCheckingKey(true);
+              try {
+                if (await verifyAdminKey(key)) onKeyChange(key);
+                else setKeyError('Clave incorrecta.');
+              } finally {
+                setCheckingKey(false);
+              }
             }}
           >
             <input
@@ -74,8 +90,8 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
               aria-label="Clave de administrador"
               autoComplete="off"
             />
-            <button type="submit" className="btn btn-primary btn-sm" disabled={!keyInput.trim()}>
-              Entrar
+            <button type="submit" className="btn btn-primary btn-sm" disabled={!keyInput.trim() || checkingKey}>
+              {checkingKey ? 'Verificando…' : 'Entrar'}
             </button>
           </form>
         </div>

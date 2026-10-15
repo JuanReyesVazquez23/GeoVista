@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { getPagedPlaces, getPlaces, getRandomPlace } from './api/placesApi';
+import { smoothScrollToId } from './scroll';
 import { loadFavorites, toggleFavorite } from './favorites';
 import type { PagedResult, Place } from './types';
 import PlaceCard from './components/PlaceCard';
@@ -139,7 +140,8 @@ export default function App() {
 
   const goToPage = (n: number) => {
     setPage(n);
-    document.getElementById('lugares')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Paginación: 700 ms con offset del nav sticky (-80px).
+    smoothScrollToId('lugares', { duration: 700, offset: -80 });
   };
 
   // Modo tour: cola de paradas con autoplay; respeta la categoría elegida.
@@ -206,7 +208,8 @@ export default function App() {
         setImmersive(place);
       } else {
         // Con el modal abierto no se hace scroll del fondo (trabajo inútil).
-        document.getElementById('destino')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Explorar: 950 ms centrado, efecto cinematográfico tras el "slot machine".
+        smoothScrollToId('destino', { duration: 950, block: 'center' });
       }
     } finally {
       setSpinning(false);
@@ -243,9 +246,33 @@ export default function App() {
           <span className="brand-name">GeoVista</span>
         </div>
         <nav className="nav-links">
-          <a href="#inicio">Inicio</a>
-          <a href="#lugares">Lugares</a>
-          <a href="#destino">Explorar</a>
+          <a
+            href="#inicio"
+            onClick={(e) => {
+              e.preventDefault();
+              smoothScrollToId('inicio', { duration: 800, block: 'start' });
+            }}
+          >
+            Inicio
+          </a>
+          <a
+            href="#lugares"
+            onClick={(e) => {
+              e.preventDefault();
+              smoothScrollToId('lugares', { duration: 800, offset: -80 });
+            }}
+          >
+            Lugares
+          </a>
+          <a
+            href="#destino"
+            onClick={(e) => {
+              e.preventDefault();
+              smoothScrollToId('destino', { duration: 800, block: 'center' });
+            }}
+          >
+            Explorar
+          </a>
         </nav>
       </header>
 
@@ -271,7 +298,14 @@ export default function App() {
             >
               {spinning ? '🛰️ Viajando…' : category === 'Todas' ? '🎲 Explorar' : `🎲 Explorar · ${category}`}
             </button>
-            <a href="#lugares" className="btn btn-ghost btn-xl">
+            <a
+              href="#lugares"
+              className="btn btn-ghost btn-xl"
+              onClick={(e) => {
+                e.preventDefault();
+                smoothScrollToId('lugares', { duration: 800, offset: -80 });
+              }}
+            >
               Ver lugares
             </a>
             <button
@@ -463,7 +497,11 @@ export default function App() {
             adminKey={adminKey}
             onKeyChange={changeAdminKey}
             onSaved={reloadAll}
-            onClose={() => setAdminOpen(false)}
+            onClose={() => {
+              // Al salir se olvida la clave: reabrir exige autenticarse de nuevo.
+              setAdminOpen(false);
+              changeAdminKey('');
+            }}
           />
         </Suspense>
       )}

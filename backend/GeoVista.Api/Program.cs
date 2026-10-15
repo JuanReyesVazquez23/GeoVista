@@ -369,6 +369,15 @@ app.MapDelete("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? ad
 .WithName("DeletePlace")
 .WithSummary("Elimina un lugar (requiere header X-Admin-Key).");
 
+app.MapGet("/api/admin/ping", ([FromHeader(Name = "X-Admin-Key")] string? adminKey) =>
+{
+    // Verificación de clave sin efectos: el panel la usa al entrar.
+    if (RequireAdmin(adminKey) is { } denied) return denied;
+    return Results.Ok(new { ok = true });
+})
+.WithName("AdminPing")
+.WithSummary("Verifica la clave de administrador (requiere header X-Admin-Key).");
+
 // Puerto inyectado por el hosting ($PORT en contenedores; IIS lo ignora).
 var port = Environment.GetEnvironmentVariable("PORT");
 if (string.IsNullOrWhiteSpace(port))

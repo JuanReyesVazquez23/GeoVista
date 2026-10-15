@@ -42,6 +42,18 @@ export class ApiError extends Error {
   }
 }
 
+// Verifica la clave contra el backend sin efectos (GET /api/admin/ping).
+export async function verifyAdminKey(key: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/admin/ping`, {
+      headers: { 'X-Admin-Key': key },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Mutaciones del panel admin (header X-Admin-Key).
 async function mutate(
   url: string,

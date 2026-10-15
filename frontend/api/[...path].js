@@ -18,6 +18,8 @@ export default async function handler(req, res) {
 
     const headers = {};
     if (req.headers['content-type']) headers['content-type'] = req.headers['content-type'];
+    // El panel admin viaja por este proxy: sin reenviar la clave, todo daría 403 en prod.
+    if (req.headers['x-admin-key']) headers['X-Admin-Key'] = req.headers['x-admin-key'];
 
     const upstream = await fetch(url, {
       method: req.method,

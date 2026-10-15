@@ -361,6 +361,7 @@ body {
 .admin-head h2 { margin: 0; color: var(--heading); font-size: 22px; }
 .admin-head .modal-close { position: static; flex: none; }
 .admin-modal .modal-desc { padding: 12px 0 0; }
+.admin-modal > .admin-error { margin: 14px 0 0; }
 .admin-modal .modal-actions { padding: 16px 0 0; }
 .admin-error {
   background: rgba(244, 63, 94, 0.12);

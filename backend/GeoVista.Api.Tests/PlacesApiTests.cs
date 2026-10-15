@@ -174,6 +174,32 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
     }
 
     [Fact]
+    public async Task WhenAdminPingWithoutKey_ThenReturnsForbidden()
+    {
+        using var response = await _client.GetAsync("/api/admin/ping");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task WhenAdminPingWithKey_ThenReturnsOk()
+    {
+        UseAdminKey("test-admin-key");
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/admin/ping");
+            request.Headers.Add("X-Admin-Key", "test-admin-key");
+            using var response = await _client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+        finally
+        {
+            UseAdminKey(null);
+        }
+    }
+
+    [Fact]
     public async Task WhenPostWithInvalidBody_ThenReturnsBadRequest()
     {
         UseAdminKey("test-admin-key");
