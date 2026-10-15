@@ -59,7 +59,7 @@ GeoVista/
 │   └── src/
 │       ├── api/              # fetch a la API + fallback local
 │       ├── components/       # GlobeBackground, PlaceCard, PlaceImage, ExploreModal
-│       ├── data/             # fallbackPlaces (la app funciona sin backend)
+│       ├── data/             # fallbackPlaces AUTO-GENERADO desde places.json (ver scripts/sync-fallback.mjs)
 │       └── App.tsx
 ├── backend/GeoVista.Api/     # ASP.NET Core 10 Minimal API
 │   ├── Models/Place.cs       # record inmutable

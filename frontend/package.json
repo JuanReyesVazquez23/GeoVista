@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "sync:fallback": "node scripts/sync-fallback.mjs",
+    "predev": "npm run sync:fallback",
+    "prebuild": "npm run sync:fallback",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
