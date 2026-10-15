@@ -33,7 +33,7 @@ Cliente-servidor en 3 niveles, desacoplado por contrato REST/JSON:
 ```mermaid
 flowchart LR
     A["🖥️ Frontend\nReact + TS · :5173"] <-->|"HTTP + JSON"| B["⚙️ API\nASP.NET Core · :5028"]
-    B --> C[("🗄️ places.json\n35 lugares")]
+    B --> C[("🗄️ places.json\n45 lugares")]
 ```
 
 | Nivel | Proyecto | Responsabilidad |
@@ -63,7 +63,7 @@ GeoVista/
 │       └── App.tsx
 ├── backend/GeoVista.Api/     # ASP.NET Core 10 Minimal API
 │   ├── Models/Place.cs       # record inmutable
-│   ├── Data/places.json      # 35 lugares
+│   ├── Data/places.json      # 45 lugares
 │   └── Program.cs            # endpoints + CORS + compresión + caché
 └── skills/                   # guías de .NET, Playwright y UI premium
 ```
@@ -92,17 +92,18 @@ npm --prefix frontend run dev
 
 ## 🗺️ Destinos incluidos
 
-35 lugares en 20+ países: Torre Eiffel, Machu Picchu, Gran Muralla, Chichén Itzá, Salar de Uyuni, Cartagena, Perito Moreno, Plaza Roja, Lago Baikal… y 4 de 🇩🇴 República Dominicana (Zona Colonial, Punta Cana, Bahía de las Águilas, Pico Duarte).
+45 lugares en 20+ países: Torre Eiffel, Machu Picchu, Gran Muralla, Chichén Itzá, Salar de Uyuni, Cartagena, Perito Moreno, Plaza Roja, Lago Baikal… y 4 de 🇩🇴 República Dominicana (Zona Colonial, Punta Cana, Bahía de las Águilas, Pico Duarte).
 
 ## 🛣️ Roadmap
 
 - [x] Explorar al azar + categorías
 - [x] Vista 360° con Street View
 - [x] Optimización de carga
-- [ ] Búsqueda por texto
-- [ ] Favoritos (`localStorage`)
-- [ ] Base de datos real (EF Core + SQLite/PostgreSQL)
-- [ ] Tests (xUnit + Playwright)
+- [x] Búsqueda por texto
+- [x] Favoritos (`localStorage`)
+- [x] Base de datos real (EF Core + SQLite/PostgreSQL)
+- [x] Tests (xUnit + Playwright)
+- [x] Observabilidad (salud, logs, headers, ETag) + CI con lint y cobertura
 
 ---
 <p align="center">Hecho con 🌎 React · TypeScript · ASP.NET Core</p>

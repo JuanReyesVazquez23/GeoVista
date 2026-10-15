@@ -145,6 +145,57 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
             root.GetProperty("items").EnumerateArray().First().GetProperty("id").GetString());
     }
 
+    [Fact]
+    public async Task WhenGetHealth_ThenReturnsOkWithPlaceCount()
+    {
+        var root = await GetJsonAsync(_client, "/health");
+
+        Assert.Equal("ok", root.GetProperty("status").GetString());
+        // Sin número exacto: el catálogo crece y el test no debe romperse por añadir un destino.
+        Assert.True(root.GetProperty("places").GetInt32() > 0);
+        Assert.True(root.TryGetProperty("uptimeSeconds", out _));
+    }
+
+    [Fact]
+    public async Task WhenGetApi_ThenSendsSecurityHeaders()
+    {
+        using var response = await _client.GetAsync("/api/places/categories");
+
+        Assert.True(response.Headers.Contains("X-Content-Type-Options"));
+        Assert.True(response.Headers.Contains("X-Frame-Options"));
+        Assert.True(response.Content.Headers.Contains("Content-Security-Policy") ||
+                    response.Headers.Contains("Content-Security-Policy"));
+    }
+
+    [Fact]
+    public async Task WhenGetCategoriesTwiceWithETag_ThenReturnsNotModified()
+    {
+        using var first = await _client.GetAsync("/api/places/categories");
+        first.EnsureSuccessStatusCode();
+        var etag = first.Headers.ETag?.Tag ?? string.Join(",", first.Headers.GetValues("ETag"));
+        Assert.False(string.IsNullOrWhiteSpace(etag));
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/places/categories");
+        request.Headers.IfNoneMatch.ParseAdd(etag);
+        using var second = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
+    }
+
+    [Fact]
+    public async Task WhenGetPlacesTwiceWithETag_ThenReturnsNotModified()
+    {
+        using var first = await _client.GetAsync("/api/places");
+        first.EnsureSuccessStatusCode();
+        var etag = first.Headers.ETag?.Tag ?? string.Join(",", first.Headers.GetValues("ETag"));
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/places");
+        request.Headers.IfNoneMatch.ParseAdd(etag);
+        using var second = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
+    }
+
     private static void UseAdminKey(string? value)
     {
         // La clave se lee por request: fijarla aquí es determinista

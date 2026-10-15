@@ -2,6 +2,13 @@ name: CI
 
 on: [push, pull_request]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -10,8 +17,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet build GeoVista.slnx
-      - run: dotnet test backend/GeoVista.Api.Tests/GeoVista.Api.Tests.csproj --no-build
+      - run: dotnet build GeoVista.slnx --warnaserror
+      - run: dotnet test backend/GeoVista.Api.Tests/GeoVista.Api.Tests.csproj --no-build --collect:"XPlat Code Coverage" --logger "console;verbosity=normal"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/GeoVista.Api.Tests/TestResults/
 
   frontend:
     runs-on: ubuntu-latest
@@ -26,6 +38,16 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      # Línea base: 6 warnings preexistentes (set-state-in-effect en fetch effects).
+      # Falla si aparecen nuevos; al limpiar uno, bajar el número.
+      - run: npm run lint -- --max-warnings=6
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/

@@ -35,6 +35,8 @@ builder.Services.AddResponseCompression(options =>
 });
 
 builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks();
+builder.Services.AddProblemDetails();
 
 // SQLite en App_Data. El contrato no cambia: React ni se entera del origen.
 var dbPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "geovista.db");
@@ -50,6 +52,38 @@ if (app.Environment.IsDevelopment())
 app.UseResponseCompression();
 
 app.UseCors("GeoVistaWeb");
+
+// Observabilidad mínima: cabeceras de seguridad + log estructurado por request.
+// La API solo sirve JSON (el 360° vive en iframes del frontend), así que el CSP puede ser estricto.
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    ctx.Response.Headers["X-Frame-Options"] = "DENY";
+    ctx.Response.Headers["Referrer-Policy"] = "no-referrer";
+    ctx.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    ctx.Response.Headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
+    await next();
+});
+
+app.Use(async (ctx, next) =>
+{
+    var start = System.Diagnostics.Stopwatch.GetTimestamp();
+    try
+    {
+        await next();
+    }
+    finally
+    {
+        // finally: la request queda logueada incluso si un middleware propio lanza
+        // antes de llegar al ExceptionHandler (que va después, más cerca del endpoint,
+        // para que el Status logueado ya sea el 500 final y no un 200 a medio escribir).
+        var elapsedMs = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+        app.Logger.LogInformation("{Method} {Path} -> {Status} en {ElapsedMs:0} ms",
+            ctx.Request.Method, ctx.Request.Path, ctx.Response.StatusCode, elapsedMs);
+    }
+});
+
+app.UseExceptionHandler();
 
 // places.json: semilla inicial de la DB + respaldo si SQLite no tiene escritura.
 var jsonPath = Path.Combine(app.Environment.ContentRootPath, "Data", "places.json");
@@ -124,6 +158,34 @@ static bool MatchesQuery(Place place, string needle) =>
     Fold(place.Country).Contains(needle) ||
     Fold(place.Category).Contains(needle) ||
     Fold(place.Description).Contains(needle);
+
+// ETag barato para el catálogo casi-estático: versión del JSON en disco +
+// huella del contenido (no solo ids: un PUT que edita nombre o foto debe
+// invalidar la caché del navegador).
+// Evita reenviar 45 lugares si el navegador ya los tiene (If-None-Match -> 304).
+static string CatalogETag(IEnumerable<Place> places, long version)
+{
+    var joined = string.Join("|", places.Select(p =>
+        $"{p.Id}:{p.Name}:{p.Country}:{p.Category}:{p.Description}:{p.Latitude}:{p.Longitude}:{p.ImageUrl}:{p.GoogleMapsUrl}:{p.HasStreetView}"));
+    return BuildETag(joined, version);
+}
+
+static string BuildETag(string content, long version)
+{
+    var hash = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(content)));
+    return $"W/\"{version}-{hash[..16]}\"";
+}
+
+static bool IsNotModified(HttpContext http, string etag)
+{
+    var incoming = http.Request.Headers.IfNoneMatch.ToString();
+    if (string.IsNullOrWhiteSpace(incoming) || string.IsNullOrWhiteSpace(etag)) return false;
+    if (incoming.Contains('*')) return true;
+    static string Norm(string s) => s.Trim().Replace("W/", "", StringComparison.Ordinal).Trim('"', ' ');
+    var want = Norm(etag);
+    return incoming.Split(',').Any(v => Norm(v) == want);
+}
 
 // Administración con clave compartida (header X-Admin-Key == env ADMIN_KEY).
 // Sin ADMIN_KEY configurado, la escritura queda deshabilitada (solo lectura).
@@ -208,10 +270,15 @@ app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? page
     List<Place> pool;
     if (string.IsNullOrWhiteSpace(q))
     {
-        // Sin parámetros: compatibilidad, devuelve el array completo.
+        // Sin parámetros: compatibilidad, devuelve el array completo (con ETag).
         if (page is null && pageSize is null)
         {
-            return Results.Ok(query.ToList());
+            var all = query.OrderBy(p => p.Id).ToList();
+            var version = File.GetLastWriteTimeUtc(jsonPath).Ticks;
+            var etag = CatalogETag(all, version);
+            http.Response.Headers.ETag = etag;
+            if (IsNotModified(http, etag)) return Results.StatusCode(304);
+            return Results.Ok(all);
         }
 
         var total = query.Count();
@@ -245,6 +312,9 @@ app.MapGet("/api/places/categories", (HttpContext http, GeoVistaDb db) =>
         .Distinct()
         .OrderBy(c => c)
         .ToList();
+    var etag = BuildETag(string.Join(",", categories), File.GetLastWriteTimeUtc(jsonPath).Ticks);
+    http.Response.Headers.ETag = etag;
+    if (IsNotModified(http, etag)) return Results.StatusCode(304);
     return Results.Ok(categories);
 })
 .WithName("GetCategories")
@@ -377,6 +447,24 @@ app.MapGet("/api/admin/ping", ([FromHeader(Name = "X-Admin-Key")] string? adminK
 })
 .WithName("AdminPing")
 .WithSummary("Verifica la clave de administrador (requiere header X-Admin-Key).");
+
+var startedAt = DateTimeOffset.UtcNow;
+app.MapGet("/health", (GeoVistaDb db) =>
+{
+    // Sonda para Render/monitoreo: 200 = vivo, con conteo para detectar semilla rota.
+    int count;
+    try { count = useDb ? db.Places.Count() : memoryPlaces.Count; }
+    catch { count = memoryPlaces.Count; }
+    return Results.Ok(new
+    {
+        status = "ok",
+        places = count,
+        uptimeSeconds = (long)(DateTimeOffset.UtcNow - startedAt).TotalSeconds,
+    });
+})
+.WithName("Health")
+.WithSummary("Sonda de salud: devuelve { status, places, uptimeSeconds }.");
+app.MapHealthChecks("/health/ready");
 
 // Puerto inyectado por el hosting ($PORT en contenedores; IIS lo ignora).
 var port = Environment.GetEnvironmentVariable("PORT");
