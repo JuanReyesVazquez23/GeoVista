@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getPagedPlaces, getPlaces, getRandomPlace } from './api/placesApi';
 import { smoothScrollToId } from './scroll';
 import { loadFavorites, toggleFavorite } from './favorites';
@@ -8,7 +8,8 @@ import PlaceImage from './components/PlaceImage';
 import InstallPrompt from './components/InstallPrompt';
 import TourBar from './components/TourBar';
 
-const GlobeBackground = lazy(() => import('./components/GlobeBackground'));
+// En móvil muestra un póster CSS (el chunk 3D ni se descarga); ver GlobeBackdrop.
+const GlobeBackdrop = lazy(() => import('./components/GlobeBackdrop'));
 // El modal (y framer-motion con él) solo se descarga al abrir el 360°.
 const ExploreModal = lazy(() => import('./components/ExploreModal'));
 // El panel admin también va en lazy: solo lo descarga quien lo abre.
@@ -31,7 +32,9 @@ export default function App() {
   const [debounced, setDebounced] = useState('');
   const [heroVisible, setHeroVisible] = useState(true);
   const [tour, setTour] = useState<{ queue: Place[]; index: number; playing: boolean } | null>(null);
-  const [logoClicks, setLogoClicks] = useState(0);
+  // Conteo del easter egg en ref: no se renderiza, no necesita ser estado.
+  const logoClicks = useRef(0);
+  const logoTimer = useRef(0);
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem('gv-admin-key') ?? '');
   const [page, setPage] = useState(1);
@@ -58,6 +61,7 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    // oxlint-disable-next-line react/set-state-in-effect -- fetch con flag de cancelación (patrón recomendado por React para carreras); no es estado derivable en render.
     setLoadingPage(true);
     const finish = (r: PagedResult<Place>) => {
       if (!cancelled) setPaged(r);
@@ -105,17 +109,22 @@ export default function App() {
       ?.setAttribute('content', current ? `${current.description} Explóralo en 360° con GeoVista.` : fallback);
   }, [immersive, selected]);
 
-  // Easter egg: 10 clics en el logo abren el panel admin (el conteo resetea tras 2.5 s).
-  useEffect(() => {
-    if (logoClicks === 0) return;
-    if (logoClicks >= 10) {
-      setLogoClicks(0);
+  // Easter egg: 10 clics en el logo abren el panel admin (el conteo vive en
+  // ref y el reseteo en el propio handler: sin efecto, sin re-render por clic).
+  const onLogoClick = useCallback(() => {
+    window.clearTimeout(logoTimer.current);
+    logoClicks.current += 1;
+    if (logoClicks.current >= 10) {
+      logoClicks.current = 0;
       setAdminOpen(true);
       return;
     }
-    const timer = window.setTimeout(() => setLogoClicks(0), 2500);
-    return () => window.clearTimeout(timer);
-  }, [logoClicks]);
+    logoTimer.current = window.setTimeout(() => {
+      logoClicks.current = 0;
+    }, 2500);
+  }, []);
+
+  useEffect(() => () => window.clearTimeout(logoTimer.current), []);
 
   const changeAdminKey = useCallback((key: string) => {
     setAdminKey(key);
@@ -159,7 +168,14 @@ export default function App() {
   const goTour = useCallback(
     (dir: 1 | -1) => {
       if (!tour) return;
-      const index = Math.min(tour.queue.length - 1, Math.max(0, tour.index + dir));
+      const next = tour.index + dir;
+      // Al pasar la última parada el tour se detiene (en vez de rebotar en un
+      // efecto): el autoplay deja de programar timers al ver playing=false.
+      if (next >= tour.queue.length) {
+        setTour({ ...tour, playing: false });
+        return;
+      }
+      const index = Math.max(0, next);
       setTour({ ...tour, index });
       setSelected(tour.queue[index]);
       setImmersive(tour.queue[index]);
@@ -171,12 +187,10 @@ export default function App() {
     setTour((t) => (t ? { ...t, playing: !t.playing } : t));
   }, []);
 
+  // Autoplay del tour: solo programa el siguiente salto; la parada final la
+  // gestiona goTour (playing=false), así el efecto no hace setState síncrono.
   useEffect(() => {
     if (!tour?.playing || !immersive) return;
-    if (tour.index >= tour.queue.length - 1) {
-      setTour({ ...tour, playing: false });
-      return;
-    }
     const timer = window.setTimeout(() => goTour(1), TOUR_STEP_MS);
     return () => window.clearTimeout(timer);
   }, [tour, immersive, goTour]);
@@ -226,7 +240,7 @@ export default function App() {
   return (
     <div className="app">
       <Suspense fallback={<div className="globe-fallback" aria-hidden="true" />}>
-        <GlobeBackground paused={immersive !== null || !heroVisible} />
+        <GlobeBackdrop paused={immersive !== null || !heroVisible} />
       </Suspense>
 
       <div className="grain" aria-hidden="true" />
@@ -241,7 +255,7 @@ export default function App() {
             height="32"
             title="GeoVista"
             style={{ cursor: 'pointer' }}
-            onClick={() => setLogoClicks((c) => c + 1)}
+            onClick={onLogoClick}
           />
           <span className="brand-name">GeoVista</span>
         </div>
@@ -350,7 +364,7 @@ export default function App() {
         <section id="destino" className="destino">
           {selected ? (
             <div key={selected.id} className="destino-card glass destino-enter">
-                <PlaceImage place={selected} loading="lazy" referrerPolicy="no-referrer" />
+                <PlaceImage key={selected.id} place={selected} loading="lazy" referrerPolicy="no-referrer" />
                 <div>
                   <span className="chip">{selected.category}</span>
                   <h2>{selected.name}</h2>
@@ -515,6 +529,7 @@ export default function App() {
           }
         >
           <ExploreModal
+            key={immersive.id}
             place={immersive}
             onClose={closeImmersive}
             onRandom={() => {

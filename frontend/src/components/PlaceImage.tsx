@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Place } from '../types';
 
 // Palabras clave temáticas para el 2º intento (foto en línea relacionada).
@@ -58,12 +58,9 @@ interface Props extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
 
 // Imagen con cadena de respaldo: Unsplash → LoremFlickr temático → Picsum.
 // Por qué: si un ID de Unsplash muere (404), la tarjeta nunca queda rota.
+// El paso se reinicia por `key={place.id}` en el padre (remontaje), no por efecto.
 export default function PlaceImage({ place, alt, w = 1200, ...rest }: Props) {
   const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    setStep(0);
-  }, [place.id, place.imageUrl, w]);
 
   // Reescribe el ancho pedido al CDN (las tarjetas se ven a ~300 px).
   const primary = place.imageUrl.includes('images.unsplash.com')

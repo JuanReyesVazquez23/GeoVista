@@ -19,11 +19,9 @@ type View = 'street' | 'map' | 'photo';
 export default function ExploreModal({ place, onClose, onRandom }: Props) {
   // Política GeoVista: sin cobertura Street View → vista fotográfica, no iframe roto.
   const hasStreetView = place.hasStreetView !== false;
+  // La vista inicial deriva del lugar; al cambiar de destino el padre remonta
+  // (key={place.id}) en vez de sincronizar con efecto.
   const [view, setView] = useState<View>(hasStreetView ? 'street' : 'photo');
-
-  useEffect(() => {
-    setView(place.hasStreetView === false ? 'photo' : 'street');
-  }, [place.id]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

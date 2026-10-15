@@ -18,7 +18,7 @@ function PlaceCard({ place, onExplore, isFav, onToggleFav }: Props) {
   return (
     <article className="card reveal">
       <div className="card-media">
-        <PlaceImage place={place} w={600} loading="lazy" referrerPolicy="no-referrer" />
+        <PlaceImage key={place.id} place={place} w={600} loading="lazy" referrerPolicy="no-referrer" />
         <span className="chip">{place.category}</span>
         <button
           type="button"
