@@ -5,8 +5,11 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using GeoVista.Api.Data;
 using GeoVista.Api.Models;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,13 +22,14 @@ if (extraOrigins is not null)
     frontendOrigins.AddRange(extraOrigins);
 }
 
-// CORS abierto para el frontend.
+// CORS para el frontend: orígenes cerrados, métodos explícitos.
+// Sin PUT/DELETE/PATCH/HEAD/TRACE: reduce superficie sin tocar lecturas.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("GeoVistaWeb", policy =>
         policy.WithOrigins([.. frontendOrigins])
               .AllowAnyHeader()
-              .AllowAnyMethod());
+              .WithMethods("GET", "POST", "PUT", "DELETE"));
 });
 
 builder.Services.AddResponseCompression(options =>
@@ -38,6 +42,46 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
 
+// Límites generosos para no romper uso legítimo ni tests (toda la suite hace
+// ~50 requests): lecturas 200/min, escrituras+admin 30/min por IP.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = (ctx, _) =>
+    {
+        ctx.HttpContext.Response.Headers.RetryAfter = "60";
+        return ValueTask.CompletedTask;
+    };
+    options.AddPolicy("reads", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 200,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+    options.AddPolicy("writes", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+});
+
+// Detrás de Render el TLS termina en su proxy: sin forwarded headers la app
+// vería "http". Se confía en el proxy solo en contenedor (env PORT).
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Sin banner "Server: Kestrel": regalar la versión del servidor no ayuda.
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
 // SQLite en App_Data. El contrato no cambia: React ni se entera del origen.
 var dbPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "geovista.db");
 builder.Services.AddDbContext<GeoVistaDb>(options => options.UseSqlite($"Data Source={dbPath}"));
@@ -49,9 +93,23 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// No hay UseHttpsRedirection a propósito: Render termina TLS en su proxy y
+// redirigir aquí entraría en bucle. HSTS (solo prod) dice al navegador que
+// use https sin necesidad de redirigir en el servidor.
+if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PORT")))
+{
+    app.UseForwardedHeaders();
+}
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseResponseCompression();
 
 app.UseCors("GeoVistaWeb");
+
+app.UseRateLimiter();
 
 // Observabilidad mínima: cabeceras de seguridad + log estructurado por request.
 // La API solo sirve JSON (el 360° vive en iframes del frontend), así que el CSP puede ser estricto.
@@ -84,6 +142,22 @@ app.Use(async (ctx, next) =>
 });
 
 app.UseExceptionHandler();
+
+// Tope anti-abuso para escrituras: un Place pesa <2 KB; 32 KB deja margen
+// de sobra y frena intentos de saturar el JSON antes de deserializar.
+const long MaxWriteBytes = 32 * 1024;
+app.Use(async (ctx, next) =>
+{
+    if ((HttpMethods.IsPost(ctx.Request.Method) || HttpMethods.IsPut(ctx.Request.Method))
+        && ctx.Request.Path.StartsWithSegments("/api/places")
+        && (ctx.Request.ContentLength ?? 0) > MaxWriteBytes)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+        await ctx.Response.WriteAsJsonAsync(new { error = "Cuerpo demasiado grande (máx. 32 KB)." });
+        return;
+    }
+    await next();
+});
 
 // places.json: semilla inicial de la DB + respaldo si SQLite no tiene escritura.
 var jsonPath = Path.Combine(app.Environment.ContentRootPath, "Data", "places.json");
@@ -301,7 +375,7 @@ app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? page
 
     return Results.Ok(new PagedResult<Place>(items, currentPage, size, pool.Count, totalPages));
 })
-.WithName("GetPlaces")
+.WithName("GetPlaces").RequireRateLimiting("reads")
 .WithSummary("Devuelve lugares: array completo o página { items, page, totalPages } con ?page=&pageSize=&category=&q=.");
 
 app.MapGet("/api/places/categories", (HttpContext http, GeoVistaDb db) =>
@@ -317,7 +391,7 @@ app.MapGet("/api/places/categories", (HttpContext http, GeoVistaDb db) =>
     if (IsNotModified(http, etag)) return Results.StatusCode(304);
     return Results.Ok(categories);
 })
-.WithName("GetCategories")
+.WithName("GetCategories").RequireRateLimiting("reads")
 .WithSummary("Devuelve las categorías disponibles.");
 
 app.MapGet("/api/places/random", (HttpContext http, GeoVistaDb db, string? category) =>
@@ -335,7 +409,7 @@ app.MapGet("/api/places/random", (HttpContext http, GeoVistaDb db, string? categ
 
     return Results.Ok(query.OrderBy(p => p.Id).Skip(Random.Shared.Next(total)).First());
 })
-.WithName("GetRandomPlace")
+.WithName("GetRandomPlace").RequireRateLimiting("reads")
 .WithSummary("Devuelve un lugar aleatorio, opcionalmente de una categoría.");
 
 app.MapGet("/api/places/{id}", (HttpContext http, GeoVistaDb db, string id) =>
@@ -351,7 +425,7 @@ app.MapGet("/api/places/{id}", (HttpContext http, GeoVistaDb db, string id) =>
 
     return place is null ? Results.NotFound() : Results.Ok(place);
 })
-.WithName("GetPlaceById")
+.WithName("GetPlaceById").RequireRateLimiting("reads")
 .WithSummary("Devuelve un lugar por su id.");
 
 app.MapPost("/api/places", ([FromHeader(Name = "X-Admin-Key")] string? adminKey, GeoVistaDb db, Place place) =>
@@ -375,7 +449,7 @@ app.MapPost("/api/places", ([FromHeader(Name = "X-Admin-Key")] string? adminKey,
 
     return Results.Created($"/api/places/{place.Id}", place);
 })
-.WithName("CreatePlace")
+.WithName("CreatePlace").RequireRateLimiting("writes")
 .WithSummary("Crea un lugar (requiere header X-Admin-Key).");
 
 app.MapPut("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? adminKey, GeoVistaDb db, string id, Place place) =>
@@ -412,7 +486,7 @@ app.MapPut("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? admin
 
     return Results.Ok(place);
 })
-.WithName("UpdatePlace")
+.WithName("UpdatePlace").RequireRateLimiting("writes")
 .WithSummary("Actualiza un lugar (requiere header X-Admin-Key).");
 
 app.MapDelete("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? adminKey, GeoVistaDb db, string id) =>
@@ -436,7 +510,7 @@ app.MapDelete("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? ad
 
     return Results.NoContent();
 })
-.WithName("DeletePlace")
+.WithName("DeletePlace").RequireRateLimiting("writes")
 .WithSummary("Elimina un lugar (requiere header X-Admin-Key).");
 
 app.MapGet("/api/admin/ping", ([FromHeader(Name = "X-Admin-Key")] string? adminKey) =>
@@ -445,7 +519,7 @@ app.MapGet("/api/admin/ping", ([FromHeader(Name = "X-Admin-Key")] string? adminK
     if (RequireAdmin(adminKey) is { } denied) return denied;
     return Results.Ok(new { ok = true });
 })
-.WithName("AdminPing")
+.WithName("AdminPing").RequireRateLimiting("writes")
 .WithSummary("Verifica la clave de administrador (requiere header X-Admin-Key).");
 
 var startedAt = DateTimeOffset.UtcNow;
@@ -465,6 +539,9 @@ app.MapGet("/health", (GeoVistaDb db) =>
 .WithName("Health")
 .WithSummary("Sonda de salud: devuelve { status, places, uptimeSeconds }.");
 app.MapHealthChecks("/health/ready");
+
+// 404 JSON en vez de página HTML: este host solo sirve API.
+app.MapFallback(() => Results.Json(new { error = "No encontrado." }, statusCode: 404));
 
 // Puerto inyectado por el hosting ($PORT en contenedores; IIS lo ignora).
 var port = Environment.GetEnvironmentVariable("PORT");

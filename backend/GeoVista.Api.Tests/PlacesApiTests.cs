@@ -196,6 +196,45 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
         Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
     }
 
+    [Fact]
+    public async Task WhenGetUnknownRoute_ThenReturnsJsonNotFound()
+    {
+        using var response = await _client.GetAsync("/api/no-existe-esta-ruta");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.StartsWith("application/json", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task WhenPostOversizedBody_ThenReturnsPayloadTooLarge()
+    {
+        UseAdminKey("test-admin-key");
+        try
+        {
+            var big = new
+            {
+                id = "lugar-enorme",
+                name = "Lugar Enorme",
+                country = "Testlandia",
+                category = "Plaza",
+                description = new string('x', 40 * 1024),
+                latitude = 10.0,
+                longitude = 20.0,
+                imageUrl = "https://example.com/foto.jpg",
+                googleMapsUrl = "https://www.google.com/maps",
+                hasStreetView = true,
+            };
+            using var response = await _client.SendAsync(AdminRequest(
+                HttpMethod.Post, "/api/places", "test-admin-key", big));
+
+            Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+        }
+        finally
+        {
+            UseAdminKey(null);
+        }
+    }
+
     private static void UseAdminKey(string? value)
     {
         // La clave se lee por request: fijarla aquí es determinista
