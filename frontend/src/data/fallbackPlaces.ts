@@ -129,10 +129,10 @@ export const fallbackPlaces: Place[] = [
     "country": "México",
     "category": "Monumento",
     "description": "Pirámide de Kukulkán maya en Yucatán, maravilla del mundo y observatorio astronómico.",
-    "latitude": 20.6839,
-    "longitude": -88.5678,
+    "latitude": 20.6836467,
+    "longitude": -88.5681843,
     "imageUrl": "https://images.unsplash.com/photo-1512813195386-6cf811ad3542?auto=format&fit=crop&w=1200&q=80",
-    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=20.6839,-88.5678",
+    "googleMapsUrl": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=20.6836467,-88.5681843",
     "hasStreetView": true
   },
   {
