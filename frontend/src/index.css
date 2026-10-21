@@ -46,7 +46,9 @@ body {
   pointer-events: none;
   background: radial-gradient(ellipse at 50% 45%, rgba(56, 189, 248, 0.14), transparent 60%);
 }
-/* Póster estático del globo para móvil: círculo CSS puro, cero JS/3D. */
+/* Globo 2D para móvil: canvas con proyección ortográfica (continentes reales).
+   Sin three.js: el chunk 3D no se descarga. El degradado es solo el respaldo
+   mientras carga la textura. */
 .globe-poster {
   position: absolute;
   top: 50%;
@@ -55,12 +57,23 @@ body {
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
+  overflow: hidden;
   background:
     radial-gradient(circle at 32% 28%, rgba(130, 214, 246, 0.5), transparent 42%),
     radial-gradient(circle at 50% 55%, #1c5a8a 0%, #0e2c4c 46%, #071224 70%, transparent 71%);
-  box-shadow:
-    0 0 120px rgba(56, 189, 248, 0.22),
-    inset -30px -30px 90px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 120px rgba(56, 189, 248, 0.22);
+}
+.globe-poster-canvas { width: 100%; height: 100%; display: block; }
+/* Brillo y sombra de limbo por encima del canvas: acentúan el volumen. */
+.globe-poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 30% 26%, rgba(190, 240, 255, 0.22), transparent 38%),
+    radial-gradient(circle at 66% 80%, transparent 40%, rgba(2, 6, 16, 0.5) 100%);
 }
 .globe-vignette {
   position: absolute;

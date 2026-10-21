@@ -15,14 +15,8 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        // three.js va en su propio chunk con caché larga (además llega lazy).
-        manualChunks(id: string) {
-          if (id.includes('node_modules/three') || id.includes('react-globe')) return 'globe';
-          if (id.includes('framer-motion')) return 'motion';
-        },
-      },
-    },
+    // Sin manualChunks: Rolldown agrupa three.js y framer-motion en los chunks
+    // de sus imports dinámicos (globo y modal). Un manualChunks que compartía
+    // React metía el globo en el grafo del entry y se descargaba también en móvil.
   },
 })

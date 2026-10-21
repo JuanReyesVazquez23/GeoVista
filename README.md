@@ -20,7 +20,7 @@
 ## ✨ Características
 
 - 🎲 **Explorar al azar** — sorteo global o filtrado por categoría (`Todas · Monumento · Plaza · Paisaje · Montaña`)
-- 🌐 **Globo 3D giratorio de fondo** con marcadores clicables (`react-globe.gl` + `three.js`)
+- 🌐 **Globo 3D giratorio de fondo** en escritorio y **globo 2D con continentes** en móvil (`react-globe.gl` + `three.js`, sin cargar el 3D en celulares)
 - 🚶 **Experiencia 360°** — Street View a nivel de calle, mapa embebido y enlaces a Google Maps / Google Earth (sin API key)
 - 🖼️ **Imágenes 100 % en línea** — nada se descarga al proyecto; triple respaldo automático anti-roto
 - ⚡ **Optimizado** — chunks lazy, imágenes al tamaño justo, 3D pausable, `Cache-Control` en la API
@@ -85,7 +85,8 @@ npm --prefix frontend run dev
 
 ## ⚡ Rendimiento
 
-- JS inicial: **~236 KB (74 KB gzip)** — `three.js` (2 MB) y `framer-motion` llegan en lazy
+- JS inicial: **~260 KB (82 KB gzip)** — `three.js` (2 MB) y `framer-motion` llegan en lazy
+- En móvil el globo es un canvas 2D (proyección ortográfica) y el chunk de `three.js` no se descarga
 - Imágenes de tarjetas a `w=600`, modal a `w=1200`, `loading="lazy"` + `decoding="async"`
 - Rotación 3D pausada con pestaña oculta, `prefers-reduced-motion` o modal abierto
 - API con `Cache-Control` (`public,max-age=3600` en catálogo, `no-store` en sorteo) y compresión gzip/brotli

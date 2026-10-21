@@ -108,3 +108,38 @@ test.describe('GeoVista', () => {
     });
   });
 });
+
+test.describe('GeoVista móvil', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test('globo 2D con continentes, sin cargar three.js', async ({ page }) => {
+    const scripts: string[] = [];
+    page.on('request', (request) => {
+      if (request.resourceType() === 'script') scripts.push(request.url());
+    });
+
+    await page.goto('/');
+
+    await test.step('El canvas del globo está visible y pintado', async () => {
+      const canvas = page.locator('.globe-poster-canvas');
+      await expect(canvas).toBeVisible();
+      // La textura es local (/earth-topology.png): el píxel central debe tener
+      // alpha > 0 cuando termina la proyección.
+      await expect
+        .poll(
+          () =>
+            canvas.evaluate((el: HTMLCanvasElement) => {
+              const ctx = el.getContext('2d');
+              if (!ctx) return 0;
+              return ctx.getImageData(el.width / 2, el.height / 2, 1, 1).data[3];
+            }),
+          { timeout: 15000 },
+        )
+        .toBeGreaterThan(0);
+    });
+
+    await test.step('No se descarga el chunk 3D', async () => {
+      expect(scripts.some((url) => /GlobeBackground[^/]*\.js/i.test(url))).toBe(false);
+    });
+  });
+});

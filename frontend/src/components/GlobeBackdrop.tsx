@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import GlobePoster from './GlobePoster';
 
 const GlobeBackground = lazy(() => import('./GlobeBackground'));
 
@@ -17,8 +18,9 @@ interface Props {
   paused?: boolean;
 }
 
-// En móvil muestra un póster CSS estático: el chunk de three.js (~2 MB)
-// ni siquiera se descarga. En escritorio, el globo 3D en lazy como antes.
+// En móvil pinta un globo 2D real (continentes + sombreado) sin cargar
+// three.js: el chunk 3D (~2 MB) ni siquiera se descarga. En escritorio,
+// el globo 3D en lazy como siempre.
 export default function GlobeBackdrop({ paused }: Props) {
   const [mobile, setMobile] = useState(isMobileGlobe);
 
@@ -32,7 +34,9 @@ export default function GlobeBackdrop({ paused }: Props) {
   if (mobile) {
     return (
       <div className="globe-bg" aria-hidden="true">
-        <div className="globe-poster" />
+        <div className="globe-poster">
+          <GlobePoster />
+        </div>
         <div className="globe-vignette" />
       </div>
     );
