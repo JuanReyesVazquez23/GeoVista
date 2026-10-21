@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import ErrorBoundary from './ErrorBoundary';
 import GlobePoster from './GlobePoster';
 
 const GlobeBackground = lazy(() => import('./GlobeBackground'));
@@ -43,8 +44,19 @@ export default function GlobeBackdrop({ paused }: Props) {
   }
 
   return (
-    <Suspense fallback={<div className="globe-fallback" aria-hidden="true" />}>
-      <GlobeBackground paused={paused} />
-    </Suspense>
+    <ErrorBoundary
+      fallback={
+        <div className="globe-bg" aria-hidden="true">
+          <div className="globe-poster">
+            <GlobePoster />
+          </div>
+          <div className="globe-vignette" />
+        </div>
+      }
+    >
+      <Suspense fallback={<div className="globe-fallback" aria-hidden="true" />}>
+        <GlobeBackground paused={paused} />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

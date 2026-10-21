@@ -5,9 +5,64 @@ import type { PagedResult, Place } from '../types';
 // VITE_API_URL=https://tu-api.onrender.com al compilar.
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
+// Error HTTP real: el servidor respondió, así que NO hay que taparlo con el
+// catálogo local (un 404 de categoría no debe devolver un lugar de otra).
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+// La API no es alcanzable (offline, DNS, cold start): aquí sí procede el fallback.
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
+async function readError(res: Response): Promise<string> {
+  const fallback = `HTTP ${res.status}`;
+  try {
+    const text = await res.text();
+    if (!text) return fallback;
+    try {
+      const parsed: unknown = JSON.parse(text);
+      if (typeof parsed === 'string') return parsed;
+      if (parsed && typeof parsed === 'object') {
+        const body = parsed as Record<string, unknown>;
+        for (const key of ['error', 'detail', 'title', 'message']) {
+          const value = body[key];
+          if (typeof value === 'string' && value.trim()) return value;
+        }
+        const errors = body.errors;
+        if (errors && typeof errors === 'object') {
+          const first = Object.values(errors as Record<string, unknown>)
+            .flat()
+            .find((value) => typeof value === 'string');
+          if (typeof first === 'string') return first;
+        }
+      }
+      return text;
+    } catch {
+      return text;
+    }
+  } catch {
+    return fallback;
+  }
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} en ${url}`);
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    throw new NetworkError(`No se pudo conectar con la API (${url}).`);
+  }
+  if (!res.ok) throw new ApiError(res.status, await readError(res));
   return res.json() as Promise<T>;
 }
 
@@ -34,14 +89,6 @@ export function matchesQuery(p: Place, needle: string): boolean {
   );
 }
 
-export class ApiError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
-
 // Verifica la clave contra el backend sin efectos (GET /api/admin/ping).
 export async function verifyAdminKey(key: string): Promise<boolean> {
   try {
@@ -66,7 +113,7 @@ async function mutate(
     headers: { 'Content-Type': 'application/json', 'X-Admin-Key': key },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
+  if (!res.ok) throw new ApiError(res.status, await readError(res));
   return res.status === 204 ? null : ((await res.json()) as Place);
 }
 
@@ -97,13 +144,23 @@ export async function getPlaces(): Promise<Place[]> {
 
 export async function getRandomPlace(category?: string): Promise<Place> {
   const scope = category?.trim();
+  const qs = scope ? `?category=${encodeURIComponent(scope)}` : '';
   try {
-    const qs = scope ? `?category=${encodeURIComponent(scope)}` : '';
     return await fetchJson<Place>(`${API_BASE}/api/places/random${qs}`);
-  } catch {
+  } catch (error) {
+    // 4xx = respuesta del servidor (p. ej. categoría vacía). Se propaga para
+    // que la UI lo explique; nunca se sustituye por un lugar de otra categoría.
+    if (error instanceof ApiError && error.status < 500) throw error;
+
+    // Sin red o 5xx: catálogo local, respetando SIEMPRE la categoría pedida.
     const pool = localPool(scope);
-    const list = pool.length > 0 ? pool : fallbackPlaces;
-    return list[Math.floor(Math.random() * list.length)];
+    if (pool.length === 0) {
+      throw new ApiError(
+        404,
+        scope ? `No hay destinos en la categoría "${scope}".` : 'No hay destinos disponibles.',
+      );
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 }
 

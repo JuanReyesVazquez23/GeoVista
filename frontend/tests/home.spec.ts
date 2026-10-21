@@ -109,6 +109,101 @@ test.describe('GeoVista', () => {
   });
 });
 
+test.describe('Explorar sin API', () => {
+  // Sin SW para que page.route intercepte el sorteo de forma determinista.
+  test.use({ serviceWorkers: 'block' });
+
+  test('un 404 de categoría muestra error y no inventa un destino', async ({ page }) => {
+    await page.route('**/api/places/random*', (route) =>
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'No hay lugares en la categoría "Montaña".' }),
+      }),
+    );
+
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Montaña', exact: true }).click();
+    await page.getByRole('button', { name: /explorar/i }).first().click();
+
+    await expect(page.getByRole('alert')).toContainText(/no hay lugares/i);
+    await expect(page.locator('.destino-card')).toHaveCount(0);
+  });
+
+  test('un 503 cae al catálogo local respetando la categoría', async ({ page }) => {
+    await page.route('**/api/places/random*', (route) =>
+      route.fulfill({ status: 503, body: '' }),
+    );
+
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Montaña', exact: true }).click();
+    await page.getByRole('button', { name: /explorar/i }).first().click();
+
+    await expect(page.locator('.destino-card .chip')).toHaveText('Montaña');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+
+  test('sin red usa el catálogo local de la categoría', async ({ page }) => {
+    await page.route('**/api/places/random*', (route) => route.abort());
+
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Plaza', exact: true }).click();
+    await page.getByRole('button', { name: /explorar/i }).first().click();
+
+    await expect(page.locator('.destino-card .chip')).toHaveText('Plaza');
+  });
+});
+
+test.describe('GeoVista PWA', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test('precachea el shell y no el chunk 3D', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+
+    const cached = await page.evaluate(async () => {
+      const urls: string[] = [];
+      for (const name of await caches.keys()) {
+        const cache = await caches.open(name);
+        for (const request of await cache.keys()) {
+          urls.push(new URL(request.url).pathname);
+        }
+      }
+      return urls;
+    });
+
+    expect(cached).toContain('/index.html');
+    expect(cached).toContain('/earth-topology.png');
+    expect(cached.some((url) => /^\/assets\/index-.*\.js$/.test(url))).toBe(true);
+    expect(cached.some((url) => /ExploreModal/.test(url))).toBe(true);
+    expect(cached.some((url) => /GlobeBackground/.test(url))).toBe(false);
+  });
+
+  test('la navegación funciona offline tras la primera visita', async ({ page, context }) => {
+    await page.goto('/');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await expect(page.getByText('45 destinos alrededor del mundo')).toBeVisible();
+
+    await context.setOffline(true);
+    await page.reload();
+
+    await expect(page.getByRole('heading', { name: /descubre el mundo/i })).toBeVisible();
+    await expect(page.getByText('45 destinos alrededor del mundo')).toBeVisible();
+  });
+
+  test('abrir un destino funciona offline', async ({ page, context }) => {
+    await page.goto('/');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+
+    await context.setOffline(true);
+    await page.reload();
+    await page.locator('.card').first().getByRole('button', { name: /explorar/i }).click();
+
+    await expect(page.locator('.modal')).toBeVisible();
+    await expect(page.locator('.modal h2')).not.toBeEmpty();
+  });
+});
+
 test.describe('GeoVista móvil', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 

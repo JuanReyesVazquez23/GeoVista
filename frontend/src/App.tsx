@@ -1,14 +1,15 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getPagedPlaces, getPlaces, getRandomPlace } from './api/placesApi';
+import { ApiError, getPagedPlaces, getPlaces, getRandomPlace } from './api/placesApi';
 import { smoothScrollToId } from './scroll';
 import { loadFavorites, toggleFavorite } from './favorites';
 import type { PagedResult, Place } from './types';
 import PlaceCard from './components/PlaceCard';
 import PlaceImage from './components/PlaceImage';
 import InstallPrompt from './components/InstallPrompt';
+import UpdatePrompt from './components/UpdatePrompt';
 import TourBar from './components/TourBar';
 
-// En móvil muestra un póster CSS (el chunk 3D ni se descarga); ver GlobeBackdrop.
+// En móvil muestra un globo 2D en canvas (el chunk 3D ni se descarga); ver GlobeBackdrop.
 const GlobeBackdrop = lazy(() => import('./components/GlobeBackdrop'));
 // El modal (y framer-motion con él) solo se descarga al abrir el 360°.
 const ExploreModal = lazy(() => import('./components/ExploreModal'));
@@ -40,6 +41,7 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [paged, setPaged] = useState<PagedResult<Place> | null>(null);
   const [loadingPage, setLoadingPage] = useState(false);
+  const [exploreError, setExploreError] = useState<string | null>(null);
 
   useEffect(() => {
     getPlaces()
@@ -212,6 +214,7 @@ export default function App() {
 
   const exploreRandom = useCallback(async (immersiveToo = false) => {
     setSpinning(true);
+    setExploreError(null);
     try {
       // Explorar respeta la categoría elegida: /api/places/random?category= (o filtro local).
       const place = await getRandomPlace(category === 'Todas' ? undefined : category);
@@ -225,6 +228,12 @@ export default function App() {
         // Explorar: 950 ms centrado, efecto cinematográfico tras el "slot machine".
         smoothScrollToId('destino', { duration: 950, block: 'center' });
       }
+    } catch (error) {
+      setExploreError(
+        error instanceof ApiError
+          ? error.message
+          : 'No se pudo buscar un destino. Revisa tu conexión e inténtalo de nuevo.',
+      );
     } finally {
       setSpinning(false);
     }
@@ -342,7 +351,12 @@ export default function App() {
                 key={c}
                 type="button"
                 className={`pill${c === category && !favOnly ? ' active' : ''}`}
-                onClick={() => { setCategory(c); setFavOnly(false); setPage(1); }}
+                onClick={() => {
+                  setCategory(c);
+                  setFavOnly(false);
+                  setPage(1);
+                  setExploreError(null);
+                }}
               >
                 {c}
               </button>
@@ -350,7 +364,11 @@ export default function App() {
             <button
               type="button"
               className={`pill${favOnly ? ' active' : ''}`}
-              onClick={() => { setFavOnly((v) => !v); setPage(1); }}
+              onClick={() => {
+                setFavOnly((v) => !v);
+                setPage(1);
+                setExploreError(null);
+              }}
               aria-pressed={favOnly}
             >
               ♥ Favoritos{favorites.length > 0 ? ` (${favorites.length})` : ''}
@@ -503,6 +521,20 @@ export default function App() {
       </footer>
 
       <InstallPrompt />
+      <UpdatePrompt />
+
+      {exploreError && (
+        <div className="toast" role="alert">
+          <span>{exploreError}</span>
+          <button
+            type="button"
+            onClick={() => setExploreError(null)}
+            aria-label="Cerrar aviso"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {adminOpen && (
         <Suspense fallback={null}>
