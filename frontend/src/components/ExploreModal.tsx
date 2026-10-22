@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { Place } from '../types';
 import { earthUrl, mapsSearchUrl } from '../maps';
+import { useModalA11y } from '../useModalA11y';
 import PlaceImage from './PlaceImage';
 
 interface Props {
@@ -22,14 +23,8 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
   // La vista inicial deriva del lugar; al cambiar de destino el padre remonta
   // (key={place.id}) en vez de sincronizar con efecto.
   const [view, setView] = useState<View>(hasStreetView ? 'street' : 'photo');
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  const titleId = useId();
+  const dialogRef = useModalA11y(onClose);
 
   const mapEmbed = `https://www.google.com/maps?q=${place.latitude},${place.longitude}&z=16&output=embed`;
   const streetEmbed = `https://maps.google.com/maps?q=&layer=c&cbll=${place.latitude},${place.longitude}&cbp=11,0,0,0,0&output=svembed`;
@@ -52,25 +47,25 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
       className="modal-overlay"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Explorar ${place.name}`}
     >
       <motion.div
+        ref={dialogRef}
         className="modal"
         initial={{ opacity: 0, y: 48, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 32, scale: 0.98 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
       >
         <div className="modal-hero">
           <PlaceImage place={place} referrerPolicy="no-referrer" />
           <div className="modal-hero-text">
             <span className="chip">{place.category}</span>
-            <h2>{place.name}</h2>
+            <h2 id={titleId}>{place.name}</h2>
             <p>
               {place.country} · {place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}
             </p>

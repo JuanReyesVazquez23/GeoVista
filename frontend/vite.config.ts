@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
@@ -41,6 +41,33 @@ function serviceWorkerPlugin(): Plugin {
         .filter((name) => /^(?:GlobeBackdrop|ExploreModal|AdminPanel)-.*\.js$/.test(name))
         .map((name) => `/assets/${name}`)
 
+      // Un chunk lazy puede importar otro compartido (p. ej. useModalA11y).
+      // Recorremos los imports relativos para que el precache no se quede a
+      // medias y abrir el modal siga funcionando offline.
+      const heavyAsset = (asset: string) => /(?:GlobeBackground|globe)-/.test(asset)
+      const pending = [...new Set([...entryAssets, ...lazyChunks])]
+      const precacheAssets = new Set<string>()
+      while (pending.length > 0) {
+        const asset = pending.pop()!
+        if (precacheAssets.has(asset) || heavyAsset(asset)) continue
+        precacheAssets.add(asset)
+        if (!asset.endsWith('.js')) continue
+
+        let code: string
+        try {
+          code = readFileSync(resolve(outDir, asset.slice(1)), 'utf8')
+        } catch {
+          continue
+        }
+        const assetDir = resolve(outDir, asset.slice(1), '..')
+        for (const match of code.matchAll(
+          /(?:from\s*|import\s*\(\s*)["'](\.\/[^"']+\.js)["']/g,
+        )) {
+          const dependency = relative(outDir, resolve(assetDir, match[1])).replace(/\\/g, '/')
+          if (!dependency.startsWith('..')) pending.push(`/${dependency}`)
+        }
+      }
+
       const precache = [
         ...new Set([
           '/',
@@ -54,8 +81,7 @@ function serviceWorkerPlugin(): Plugin {
           '/maskable-512.png',
           '/apple-touch-icon.png',
           '/earth-topology.png',
-          ...entryAssets,
-          ...lazyChunks,
+          ...precacheAssets,
         ]),
       ]
 

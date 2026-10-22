@@ -41,6 +41,22 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
         return doc.RootElement.Clone();
     }
 
+    private static async Task AssertProblemAsync(HttpResponseMessage response, int status)
+    {
+        Assert.Equal((HttpStatusCode)status, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+
+        using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        Assert.Equal(status, doc.RootElement.GetProperty("status").GetInt32());
+        Assert.False(string.IsNullOrWhiteSpace(doc.RootElement.GetProperty("title").GetString()));
+    }
+
+    private static string CatalogPath => Path.GetFullPath(Path.Combine(
+        AppContext.BaseDirectory, "..", "..", "..", "..", "GeoVista.Api", "Data", "places.json"));
+
+    private static async Task<JsonDocument> ReadCatalogAsync() =>
+        JsonDocument.Parse(await File.ReadAllTextAsync(CatalogPath));
+
     [Fact]
     public async Task WhenGetPlaces_ThenReturns45Places()
     {
@@ -64,11 +80,11 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
     [Theory]
     [InlineData("?page=0&pageSize=9")]
     [InlineData("?page=1&pageSize=51")]
-    public async Task WhenGetPlacesPagedWithInvalidParams_ThenReturnsBadRequest(string query)
+    public async Task WhenGetPlacesPagedWithInvalidParams_ThenReturnsProblemDetails(string query)
     {
         using var response = await _client.GetAsync($"/api/places{query}");
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        await AssertProblemAsync(response, 400);
     }
 
     [Fact]
@@ -80,11 +96,11 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
     }
 
     [Fact]
-    public async Task WhenGetRandomWithUnknownCategory_ThenReturnsNotFound()
+    public async Task WhenGetRandomWithUnknownCategory_ThenReturnsProblemDetails()
     {
         using var response = await _client.GetAsync("/api/places/random?category=NoExiste");
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        await AssertProblemAsync(response, 404);
     }
 
     [Fact]
@@ -97,13 +113,14 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
     }
 
     [Fact]
-    public async Task WhenGetPlaces_ThenSendsPublicCacheHeader()
+    public async Task WhenGetPlaces_ThenSendsPublicNoCacheHeader()
     {
         using var response = await _client.GetAsync("/api/places");
 
         var cache = response.Headers.CacheControl;
         Assert.True(cache?.Public);
-        Assert.Equal(TimeSpan.FromHours(1), cache?.MaxAge);
+        Assert.True(cache?.NoCache);
+        Assert.Null(cache?.MaxAge);
     }
 
     [Fact]
@@ -115,11 +132,11 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
     }
 
     [Fact]
-    public async Task WhenGetPlaceByUnknownId_ThenReturnsNotFound()
+    public async Task WhenGetPlaceByUnknownId_ThenReturnsProblemDetails()
     {
         using var response = await _client.GetAsync("/api/places/no-existe");
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        await AssertProblemAsync(response, 404);
     }
 
     [Fact]
@@ -154,6 +171,19 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
         // Sin número exacto: el catálogo crece y el test no debe romperse por añadir un destino.
         Assert.True(root.GetProperty("places").GetInt32() > 0);
         Assert.True(root.TryGetProperty("uptimeSeconds", out _));
+    }
+
+    [Fact]
+    public async Task WhenGetHealthReady_ThenReturnsReadyWithCatalog()
+    {
+        using var response = await _client.GetAsync("/health/ready");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("no-store", string.Join(",", response.Headers.GetValues("Cache-Control")));
+        var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        Assert.Equal("ready", doc.RootElement.GetProperty("status").GetString());
+        Assert.True(doc.RootElement.GetProperty("places").GetInt32() > 0);
+        Assert.Contains(doc.RootElement.GetProperty("storage").GetString(), new[] { "sqlite", "json" });
     }
 
     [Fact]
@@ -197,12 +227,42 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
     }
 
     [Fact]
-    public async Task WhenGetUnknownRoute_ThenReturnsJsonNotFound()
+    public async Task WhenGetPagedPlacesTwiceWithETag_ThenReturnsNotModified()
+    {
+        using var first = await _client.GetAsync("/api/places?page=2&pageSize=9");
+        first.EnsureSuccessStatusCode();
+        var etag = first.Headers.ETag?.Tag;
+        Assert.False(string.IsNullOrWhiteSpace(etag));
+        Assert.True(first.Headers.CacheControl?.NoCache);
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/places?page=2&pageSize=9");
+        request.Headers.IfNoneMatch.ParseAdd(etag);
+        using var second = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
+    }
+
+    [Fact]
+    public async Task WhenGetPlaceByIdTwiceWithETag_ThenReturnsNotModified()
+    {
+        using var first = await _client.GetAsync("/api/places/torre-eiffel");
+        first.EnsureSuccessStatusCode();
+        var etag = first.Headers.ETag?.Tag;
+        Assert.False(string.IsNullOrWhiteSpace(etag));
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/places/torre-eiffel");
+        request.Headers.IfNoneMatch.ParseAdd(etag);
+        using var second = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
+    }
+
+    [Fact]
+    public async Task WhenGetUnknownRoute_ThenReturnsProblemDetails()
     {
         using var response = await _client.GetAsync("/api/no-existe-esta-ruta");
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.StartsWith("application/json", response.Content.Headers.ContentType?.MediaType);
+        await AssertProblemAsync(response, 404);
     }
 
     [Fact]
@@ -228,6 +288,7 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
                 HttpMethod.Post, "/api/places", "test-admin-key", big));
 
             Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+            Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         }
         finally
         {
@@ -255,12 +316,12 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
     }
 
     [Fact]
-    public async Task WhenPostWithoutKey_ThenReturnsForbidden()
+    public async Task WhenPostWithoutKey_ThenReturnsProblemDetails()
     {
         using var response = await _client.SendAsync(
             AdminRequest(HttpMethod.Post, "/api/places", null, new { }));
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        await AssertProblemAsync(response, 403);
     }
 
     [Fact]
@@ -282,6 +343,7 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
             using var response = await _client.SendAsync(request);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("no-store", string.Join(",", response.Headers.GetValues("Cache-Control")));
         }
         finally
         {
@@ -307,7 +369,7 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
     }
 
     [Fact]
-    public async Task WhenAdminCrudRoundtrip_ThenPersistsAndDeletes()
+    public async Task WhenAdminCrudRoundtrip_ThenPersistsAtomicallyInvalidatesETagAndDeletes()
     {
         const string id = "test-admin-lugar";
         UseAdminKey("test-admin-key");
@@ -330,21 +392,76 @@ public class PlacesApiTests : IClassFixture<GeoVistaWebFactory>
             using var created = await _client.SendAsync(AdminRequest(HttpMethod.Post, "/api/places", "test-admin-key", place));
             Assert.Equal(HttpStatusCode.Created, created.StatusCode);
 
-            var fetched = await GetJsonAsync(_client, $"/api/places/{id}");
-            Assert.Equal("Lugar de Prueba", fetched.GetProperty("name").GetString());
+            // La escritura atómica deja el JSON válido y sin temporales.
+            using (var catalog = await ReadCatalogAsync())
+            {
+                var saved = catalog.RootElement.EnumerateArray()
+                    .Single(p => p.GetProperty("id").GetString() == id);
+                Assert.Equal("Lugar de Prueba", saved.GetProperty("name").GetString());
+            }
+            Assert.False(File.Exists(CatalogPath + ".tmp"));
+
+            using var beforeUpdate = await _client.GetAsync($"/api/places/{id}");
+            beforeUpdate.EnsureSuccessStatusCode();
+            var oldEtag = beforeUpdate.Headers.ETag?.Tag;
+            Assert.False(string.IsNullOrWhiteSpace(oldEtag));
+
+            using var pageBeforeUpdate = await _client.GetAsync("/api/places?page=1&pageSize=50");
+            pageBeforeUpdate.EnsureSuccessStatusCode();
+            var oldPageEtag = pageBeforeUpdate.Headers.ETag?.Tag;
+            Assert.False(string.IsNullOrWhiteSpace(oldPageEtag));
 
             var updated = place with { name = "Lugar de Prueba Editado" };
             using var put = await _client.SendAsync(AdminRequest(HttpMethod.Put, $"/api/places/{id}", "test-admin-key", updated));
             Assert.Equal(HttpStatusCode.OK, put.StatusCode);
 
+            // El ETag viejo ya no vale: el admin no puede recibir la copia
+            // cacheada de antes de la edición (el bug original).
+            var staleRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/places/{id}");
+            staleRequest.Headers.IfNoneMatch.ParseAdd(oldEtag!);
+            using var stale = await _client.SendAsync(staleRequest);
+            Assert.Equal(HttpStatusCode.OK, stale.StatusCode);
+            using var staleDoc = await JsonDocument.ParseAsync(await stale.Content.ReadAsStreamAsync());
+            Assert.Equal("Lugar de Prueba Editado", staleDoc.RootElement.GetProperty("name").GetString());
+
+            var stalePageRequest = new HttpRequestMessage(HttpMethod.Get, "/api/places?page=1&pageSize=50");
+            stalePageRequest.Headers.IfNoneMatch.ParseAdd(oldPageEtag!);
+            using var stalePage = await _client.SendAsync(stalePageRequest);
+            Assert.Equal(HttpStatusCode.OK, stalePage.StatusCode);
+
+            using (var catalog = await ReadCatalogAsync())
+            {
+                var saved = catalog.RootElement.EnumerateArray()
+                    .Single(p => p.GetProperty("id").GetString() == id);
+                Assert.Equal("Lugar de Prueba Editado", saved.GetProperty("name").GetString());
+            }
+            Assert.False(File.Exists(CatalogPath + ".tmp"));
+
             using var deleted = await _client.SendAsync(AdminRequest(HttpMethod.Delete, $"/api/places/{id}", "test-admin-key"));
             Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+
+            using (var catalog = await ReadCatalogAsync())
+            {
+                Assert.DoesNotContain(
+                    catalog.RootElement.EnumerateArray(),
+                    p => p.GetProperty("id").GetString() == id);
+            }
 
             using var gone = await _client.GetAsync($"/api/places/{id}");
             Assert.Equal(HttpStatusCode.NotFound, gone.StatusCode);
         }
         finally
         {
+            // Si el test falla a mitad, no dejar el lugar de prueba en places.json.
+            try
+            {
+                using var cleanup = await _client.SendAsync(
+                    AdminRequest(HttpMethod.Delete, $"/api/places/{id}", "test-admin-key"));
+            }
+            catch
+            {
+                // Limpieza best-effort.
+            }
             UseAdminKey(null);
         }
     }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Place } from '../types';
 import { ApiError, createPlace, deletePlace, updatePlace, verifyAdminKey } from '../api/placesApi';
+import ModalFrame from './ModalFrame';
 
 interface Props {
   places: Place[];
@@ -52,50 +53,48 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
 
   if (!adminKey) {
     return (
-      <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Acceso administrador">
-        <div className="modal admin-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="admin-head">
-            <h2>🔐 Administración</h2>
-            <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">
-              ✕
-            </button>
-          </div>
-          <p className="modal-desc">Introduce la clave de administrador (variable ADMIN_KEY del backend).</p>
-          {keyError && (
-            <p className="admin-error" role="alert">
-              {keyError}
-            </p>
-          )}
-          <form
-            className="admin-key-form"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const key = keyInput.trim();
-              if (!key) return;
-              setKeyError(null);
-              setCheckingKey(true);
-              try {
-                if (await verifyAdminKey(key)) onKeyChange(key);
-                else setKeyError('Clave incorrecta.');
-              } finally {
-                setCheckingKey(false);
-              }
-            }}
-          >
-            <input
-              type="password"
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              placeholder="Clave de administrador"
-              aria-label="Clave de administrador"
-              autoComplete="off"
-            />
-            <button type="submit" className="btn btn-primary btn-sm" disabled={!keyInput.trim() || checkingKey}>
-              {checkingKey ? 'Verificando…' : 'Entrar'}
-            </button>
-          </form>
+      <ModalFrame key="auth" label="Acceso administrador" onClose={onClose} className="admin-modal">
+        <div className="admin-head">
+          <h2>🔐 Administración</h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">
+            ✕
+          </button>
         </div>
-      </div>
+        <p className="modal-desc">Introduce la clave de administrador (variable ADMIN_KEY del backend).</p>
+        {keyError && (
+          <p className="admin-error" role="alert">
+            {keyError}
+          </p>
+        )}
+        <form
+          className="admin-key-form"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const key = keyInput.trim();
+            if (!key) return;
+            setKeyError(null);
+            setCheckingKey(true);
+            try {
+              if (await verifyAdminKey(key)) onKeyChange(key);
+              else setKeyError('Clave incorrecta.');
+            } finally {
+              setCheckingKey(false);
+            }
+          }}
+        >
+          <input
+            type="password"
+            value={keyInput}
+            onChange={(e) => setKeyInput(e.target.value)}
+            placeholder="Clave de administrador"
+            aria-label="Clave de administrador"
+            autoComplete="off"
+          />
+          <button type="submit" className="btn btn-primary btn-sm" disabled={!keyInput.trim() || checkingKey}>
+            {checkingKey ? 'Verificando…' : 'Entrar'}
+          </button>
+        </form>
+      </ModalFrame>
     );
   }
 
@@ -148,8 +147,7 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Administrar lugares">
-      <div className="modal admin-modal" onClick={(e) => e.stopPropagation()}>
+    <ModalFrame key="panel" label="Administrar lugares" onClose={onClose} className="admin-modal">
         <div className="admin-head">
           <h2>🛠️ Lugares ({places.length})</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">
@@ -310,7 +308,6 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
             </ul>
           </>
         )}
-      </div>
-    </div>
+    </ModalFrame>
   );
 }

@@ -39,7 +39,6 @@ builder.Services.AddResponseCompression(options =>
 });
 
 builder.Services.AddOpenApi();
-builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
 
 // Límites generosos para no romper uso legítimo ni tests (toda la suite hace
@@ -47,10 +46,15 @@ builder.Services.AddProblemDetails();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.OnRejected = (ctx, _) =>
+    options.OnRejected = async (ctx, _) =>
     {
         ctx.HttpContext.Response.Headers.RetryAfter = "60";
-        return ValueTask.CompletedTask;
+        ctx.HttpContext.Response.Headers.CacheControl = "no-store";
+        await Results.Problem(
+            statusCode: StatusCodes.Status429TooManyRequests,
+            title: "Demasiadas solicitudes",
+            detail: "Espera un minuto antes de volver a intentarlo.")
+            .ExecuteAsync(ctx.HttpContext);
     };
     options.AddPolicy("reads", ctx => RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
@@ -152,8 +156,11 @@ app.Use(async (ctx, next) =>
         && ctx.Request.Path.StartsWithSegments("/api/places")
         && (ctx.Request.ContentLength ?? 0) > MaxWriteBytes)
     {
-        ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
-        await ctx.Response.WriteAsJsonAsync(new { error = "Cuerpo demasiado grande (máx. 32 KB)." });
+        await Results.Problem(
+            statusCode: StatusCodes.Status413PayloadTooLarge,
+            title: "Cuerpo demasiado grande",
+            detail: "El cuerpo supera el máximo de 32 KB.")
+            .ExecuteAsync(ctx);
         return;
     }
     await next();
@@ -180,26 +187,51 @@ try
     Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
     using var scope = app.Services.CreateScope();
     var init = scope.ServiceProvider.GetRequiredService<GeoVistaDb>();
-    init.Database.EnsureCreated();
-    // Upsert por Id: el JSON manda siempre, así los cambios de coordenadas
-    // y lugares nuevos se propagan aunque la DB ya exista.
-    var existingIds = init.Places
-        .AsNoTracking()
-        .Select(p => p.Id)
-        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-    foreach (var place in memoryPlaces)
+
+    // El JSON manda en un despliegue normal (mtime nuevo) para propagar
+    // coordenadas y lugares corregidos en el repo. Pero si la DB es más
+    // reciente, significa que un admin escribió y el JSON falló: en ese caso
+    // no re-sembramos, para no revertir altas/bajas/ediciones al reiniciar.
+    // Se mide antes de EnsureCreated: abrir la DB no debe falsear el mtime.
+    DateTime DbTimestamp()
     {
-        if (existingIds.Contains(place.Id))
-            init.Places.Update(place);
-        else
-            init.Places.Add(place);
+        var main = File.Exists(dbPath) ? File.GetLastWriteTimeUtc(dbPath) : DateTime.MinValue;
+        var wal = File.Exists(dbPath + "-wal") ? File.GetLastWriteTimeUtc(dbPath + "-wal") : DateTime.MinValue;
+        return main > wal ? main : wal;
     }
-    // Bajas: lo que salió del JSON sale de la DB (traduce a NOT IN en SQL).
-    var wantedIds = memoryPlaces.Select(p => p.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-    init.Places.RemoveRange(init.Places.Where(p => !wantedIds.Contains(p.Id)));
-    init.SaveChanges();
+
+    var dbWasNewer = DbTimestamp() >= File.GetLastWriteTimeUtc(jsonPath);
+    init.Database.EnsureCreated();
+
+    var hasRows = init.Places.Any();
+    if (!hasRows || !dbWasNewer)
+    {
+        // Upsert por Id: el JSON es la semilla y puede corregir filas existentes.
+        var existingIds = init.Places
+            .AsNoTracking()
+            .Select(p => p.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var place in memoryPlaces)
+        {
+            if (existingIds.Contains(place.Id))
+                init.Places.Update(place);
+            else
+                init.Places.Add(place);
+        }
+        // Bajas: lo que salió del JSON sale de la DB (traduce a NOT IN en SQL).
+        var wantedIds = memoryPlaces.Select(p => p.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        init.Places.RemoveRange(init.Places.Where(p => !wantedIds.Contains(p.Id)));
+        init.SaveChanges();
+        app.Logger.LogInformation("SQLite sembrada desde places.json ({Count} lugares).", init.Places.Count());
+    }
+    else
+    {
+        app.Logger.LogInformation(
+            "SQLite más reciente que places.json; se conservan los cambios de la DB ({Count} lugares).",
+            init.Places.Count());
+    }
+
     useDb = true;
-    app.Logger.LogInformation("SQLite activa con {Count} lugares.", init.Places.Count());
 }
 catch (Exception ex)
 {
@@ -237,12 +269,19 @@ static bool MatchesQuery(Place place, string needle) =>
 // huella del contenido (no solo ids: un PUT que edita nombre o foto debe
 // invalidar la caché del navegador).
 // Evita reenviar 45 lugares si el navegador ya los tiene (If-None-Match -> 304).
-static string CatalogETag(IEnumerable<Place> places, long version)
-{
-    var joined = string.Join("|", places.Select(p =>
-        $"{p.Id}:{p.Name}:{p.Country}:{p.Category}:{p.Description}:{p.Latitude}:{p.Longitude}:{p.ImageUrl}:{p.GoogleMapsUrl}:{p.HasStreetView}"));
-    return BuildETag(joined, version);
-}
+static string PlaceFingerprint(Place p) =>
+    $"{p.Id}:{p.Name}:{p.Country}:{p.Category}:{p.Description}:{p.Latitude}:{p.Longitude}:{p.ImageUrl}:{p.GoogleMapsUrl}:{p.HasStreetView}";
+
+static string CatalogETag(IEnumerable<Place> places, long version) =>
+    BuildETag(string.Join("|", places.Select(PlaceFingerprint)), version);
+
+// La página también forma parte de la representación: mismo contenido en otra
+// página no debe devolver 304, y un cambio de total/totalPages debe invalidar.
+static string PagedETag(PagedResult<Place> page, long version) =>
+    BuildETag(
+        $"{page.Page}:{page.PageSize}:{page.TotalCount}:{page.TotalPages}|" +
+        string.Join("|", page.Items.Select(PlaceFingerprint)),
+        version);
 
 static string BuildETag(string content, long version)
 {
@@ -261,6 +300,20 @@ static bool IsNotModified(HttpContext http, string etag)
     return incoming.Split(',').Any(v => Norm(v) == want);
 }
 
+static IResult ConditionalOk<T>(HttpContext http, string etag, T value)
+{
+    http.Response.Headers.ETag = etag;
+    return IsNotModified(http, etag) ? Results.StatusCode(304) : Results.Ok(value);
+}
+
+// Si el JSON desaparece o no se puede leer, no rompemos las lecturas que ya
+// están en la DB: el ETag sigue siendo válido por el contenido.
+long CatalogVersion()
+{
+    try { return File.GetLastWriteTimeUtc(jsonPath).Ticks; }
+    catch { return 0; }
+}
+
 // Administración con clave compartida (header X-Admin-Key == env ADMIN_KEY).
 // Sin ADMIN_KEY configurado, la escritura queda deshabilitada (solo lectura).
 static bool IsAdmin(string? provided)
@@ -272,7 +325,10 @@ static bool IsAdmin(string? provided)
 static IResult? RequireAdmin(string? provided) =>
     IsAdmin(provided)
         ? null
-        : Results.Text("No autorizado: falta la clave de administrador o no está configurada.", statusCode: 403);
+        : Results.Problem(
+            statusCode: StatusCodes.Status403Forbidden,
+            title: "No autorizado",
+            detail: "Falta la clave de administrador o no está configurada.");
 
 static bool IsHttpUrl(string? url) =>
     Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
@@ -297,9 +353,18 @@ static string? ValidatePlace(Place place, bool isNew, Func<string, bool> exists)
 }
 
 var jsonLock = new object();
+var jsonWriteOptions = new JsonSerializerOptions
+{
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    // Sin escapes \u00XX: el archivo sigue legible en UTF-8 y el diff es mínimo.
+    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+};
 
 // El JSON sigue siendo el origen para el próximo arranque: cada escritura
 // se refleja en disco. Si el disco falla, el cambio queda solo en la DB (se avisa en logs).
+// La escritura es atómica (temporal + rename): un corte a mitad nunca deja
+// places.json truncado, que impediría arrancar y rompería el fallback local.
 void ApplyToJson(Action<List<Place>> mutate, ILogger logger)
 {
     try
@@ -309,32 +374,53 @@ void ApplyToJson(Action<List<Place>> mutate, ILogger logger)
             var catalog = JsonSerializer.Deserialize<List<Place>>(
                 File.ReadAllText(jsonPath), jsonOptions) ?? [];
             mutate(catalog);
-            File.WriteAllText(jsonPath, JsonSerializer.Serialize(catalog, new JsonSerializerOptions
+            var json = JsonSerializer.Serialize(catalog, jsonWriteOptions);
+            var tempPath = jsonPath + ".tmp";
+            try
             {
-                WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                // Sin escapes \u00XX: el archivo sigue legible en UTF-8 y el diff es mínimo.
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            }));
+                using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
+                {
+                    writer.Write(json);
+                    writer.Flush();
+                    stream.Flush(flushToDisk: true);
+                }
+                File.Move(tempPath, jsonPath, overwrite: true);
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch
+                {
+                    // Limpieza best-effort: no ocultar el error real de escritura.
+                }
+            }
         }
     }
     catch (Exception ex)
     {
-        logger.LogWarning(ex, "No se pudo actualizar places.json; el cambio quedó solo en la DB.");
+        logger.LogWarning(ex, "No se pudo actualizar places.json de forma atómica; el cambio quedó solo en la DB.");
     }
 }
 
 app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? pageSize, string? category, string? q) =>
 {
-    // El catálogo casi no cambia: el navegador reutiliza cada búsqueda/página 1 hora.
-    // La query es parte de la clave de caché, así que cada búsqueda se cachea aparte.
-    http.Response.Headers.CacheControl = "public,max-age=3600";
+    // no-cache (no no-store): el navegador guarda la respuesta, pero revalida
+    // con If-None-Match. Así el panel admin ve sus cambios al instante y el
+    // catálogo normal sigue ahorrando bytes con 304.
+    http.Response.Headers.CacheControl = "public,no-cache";
 
     var currentPage = page.GetValueOrDefault(1);
     var size = pageSize.GetValueOrDefault(12);
     if (currentPage < 1 || size is < 1 or > 50)
     {
-        return Results.BadRequest("page debe ser >= 1 y pageSize estar entre 1 y 50.");
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Parámetros inválidos",
+            detail: "page debe ser >= 1 y pageSize estar entre 1 y 50.");
     }
 
     var query = Query(db, category);
@@ -348,48 +434,50 @@ app.MapGet("/api/places", (HttpContext http, GeoVistaDb db, int? page, int? page
         if (page is null && pageSize is null)
         {
             var all = query.OrderBy(p => p.Id).ToList();
-            var version = File.GetLastWriteTimeUtc(jsonPath).Ticks;
-            var etag = CatalogETag(all, version);
-            http.Response.Headers.ETag = etag;
-            if (IsNotModified(http, etag)) return Results.StatusCode(304);
-            return Results.Ok(all);
+            return ConditionalOk(http, CatalogETag(all, CatalogVersion()), all);
         }
 
         var total = query.Count();
         var sqlPages = (int)Math.Ceiling(total / (double)size);
         var sqlItems = query.OrderBy(p => p.Id).Skip((currentPage - 1) * size).Take(size).ToList();
+        var result = new PagedResult<Place>(sqlItems, currentPage, size, total, sqlPages);
 
-        return Results.Ok(new PagedResult<Place>(sqlItems, currentPage, size, total, sqlPages));
+        return ConditionalOk(http, PagedETag(result, CatalogVersion()), result);
     }
 
     var needle = Fold(q.Trim());
-    pool = query.AsEnumerable().Where(p => MatchesQuery(p, needle)).ToList();
+    // OrderBy: sin él, SQLite puede devolver las filas en cualquier orden y
+    // la misma página cambiaría entre requests (y el ETag sería inútil).
+    pool = query.AsEnumerable()
+        .Where(p => MatchesQuery(p, needle))
+        .OrderBy(p => p.Id)
+        .ToList();
 
     if (page is null && pageSize is null)
     {
-        return Results.Ok(pool);
+        return ConditionalOk(http, CatalogETag(pool, CatalogVersion()), pool);
     }
 
     var totalPages = (int)Math.Ceiling(pool.Count / (double)size);
     var items = pool.Skip((currentPage - 1) * size).Take(size).ToList();
+    var pageResult = new PagedResult<Place>(items, currentPage, size, pool.Count, totalPages);
 
-    return Results.Ok(new PagedResult<Place>(items, currentPage, size, pool.Count, totalPages));
+    return ConditionalOk(http, PagedETag(pageResult, CatalogVersion()), pageResult);
 })
 .WithName("GetPlaces").RequireRateLimiting("reads")
 .WithSummary("Devuelve lugares: array completo o página { items, page, totalPages } con ?page=&pageSize=&category=&q=.");
 
 app.MapGet("/api/places/categories", (HttpContext http, GeoVistaDb db) =>
 {
-    http.Response.Headers.CacheControl = "public,max-age=3600";
+    http.Response.Headers.CacheControl = "public,no-cache";
     var categories = Query(db, null)
         .Select(p => p.Category)
         .Distinct()
         .OrderBy(c => c)
         .ToList();
-    var etag = BuildETag(string.Join(",", categories), File.GetLastWriteTimeUtc(jsonPath).Ticks);
-    http.Response.Headers.ETag = etag;
-    if (IsNotModified(http, etag)) return Results.StatusCode(304);
-    return Results.Ok(categories);
+    var etag = BuildETag(string.Join(",", categories), CatalogVersion());
+
+    return ConditionalOk(http, etag, categories);
 })
 .WithName("GetCategories").RequireRateLimiting("reads")
 .WithSummary("Devuelve las categorías disponibles.");
@@ -404,7 +492,10 @@ app.MapGet("/api/places/random", (HttpContext http, GeoVistaDb db, string? categ
     var total = query.Count();
     if (total == 0)
     {
-        return Results.NotFound($"No hay lugares en la categoría '{category}'.");
+        return Results.Problem(
+            statusCode: StatusCodes.Status404NotFound,
+            title: "No encontrado",
+            detail: $"No hay lugares en la categoría '{category}'.");
     }
 
     return Results.Ok(query.OrderBy(p => p.Id).Skip(Random.Shared.Next(total)).First());
@@ -414,16 +505,26 @@ app.MapGet("/api/places/random", (HttpContext http, GeoVistaDb db, string? categ
 
 app.MapGet("/api/places/{id}", (HttpContext http, GeoVistaDb db, string id) =>
 {
-    http.Response.Headers.CacheControl = "public,max-age=3600";
+    http.Response.Headers.CacheControl = "public,no-cache";
     if (string.IsNullOrWhiteSpace(id))
     {
-        return Results.BadRequest("El id no puede estar vacío.");
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Solicitud inválida",
+            detail: "El id no puede estar vacío.");
     }
 
     var lowered = id.Trim().ToLowerInvariant();
     var place = Query(db, null).FirstOrDefault(p => p.Id.ToLower() == lowered);
+    if (place is null)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status404NotFound,
+            title: "No encontrado",
+            detail: $"No existe un lugar con id '{id}'.");
+    }
 
-    return place is null ? Results.NotFound() : Results.Ok(place);
+    return ConditionalOk(http, BuildETag(PlaceFingerprint(place), CatalogVersion()), place);
 })
 .WithName("GetPlaceById").RequireRateLimiting("reads")
 .WithSummary("Devuelve un lugar por su id.");
@@ -433,7 +534,10 @@ app.MapPost("/api/places", ([FromHeader(Name = "X-Admin-Key")] string? adminKey,
     if (RequireAdmin(adminKey) is { } denied) return denied;
     if (ValidatePlace(place, true, id => Query(db, null).Any(p => p.Id.ToLower() == id.Trim().ToLowerInvariant())) is { } error)
     {
-        return Results.BadRequest(error);
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Solicitud inválida",
+            detail: error);
     }
 
     if (useDb)
@@ -457,25 +561,43 @@ app.MapPut("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? admin
     if (RequireAdmin(adminKey) is { } denied) return denied;
     if (!string.Equals(place.Id, id, StringComparison.OrdinalIgnoreCase))
     {
-        return Results.BadRequest("El id del cuerpo debe coincidir con el de la ruta.");
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Solicitud inválida",
+            detail: "El id del cuerpo debe coincidir con el de la ruta.");
     }
     if (ValidatePlace(place, false, _ => false) is { } error)
     {
-        return Results.BadRequest(error);
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Solicitud inválida",
+            detail: error);
     }
 
     var lowered = id.Trim().ToLowerInvariant();
     if (useDb)
     {
         var existing = db.Places.FirstOrDefault(p => p.Id.ToLower() == lowered);
-        if (existing is null) return Results.NotFound($"No existe un lugar con id '{id}'.");
+        if (existing is null)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "No encontrado",
+                detail: $"No existe un lugar con id '{id}'.");
+        }
         db.Entry(existing).CurrentValues.SetValues(place);
         db.SaveChanges();
     }
     else
     {
         var index = memoryPlaces.FindIndex(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
-        if (index < 0) return Results.NotFound($"No existe un lugar con id '{id}'.");
+        if (index < 0)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "No encontrado",
+                detail: $"No existe un lugar con id '{id}'.");
+        }
         memoryPlaces[index] = place;
     }
     ApplyToJson(catalog =>
@@ -497,14 +619,26 @@ app.MapDelete("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? ad
     if (useDb)
     {
         var existing = db.Places.FirstOrDefault(p => p.Id.ToLower() == lowered);
-        if (existing is null) return Results.NotFound($"No existe un lugar con id '{id}'.");
+        if (existing is null)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "No encontrado",
+                detail: $"No existe un lugar con id '{id}'.");
+        }
         db.Places.Remove(existing);
         db.SaveChanges();
     }
     else
     {
         var removed = memoryPlaces.RemoveAll(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
-        if (removed == 0) return Results.NotFound($"No existe un lugar con id '{id}'.");
+        if (removed == 0)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "No encontrado",
+                detail: $"No existe un lugar con id '{id}'.");
+        }
     }
     ApplyToJson(catalog => catalog.RemoveAll(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)), app.Logger);
 
@@ -513,9 +647,11 @@ app.MapDelete("/api/places/{id}", ([FromHeader(Name = "X-Admin-Key")] string? ad
 .WithName("DeletePlace").RequireRateLimiting("writes")
 .WithSummary("Elimina un lugar (requiere header X-Admin-Key).");
 
-app.MapGet("/api/admin/ping", ([FromHeader(Name = "X-Admin-Key")] string? adminKey) =>
+app.MapGet("/api/admin/ping", (HttpContext http, [FromHeader(Name = "X-Admin-Key")] string? adminKey) =>
 {
     // Verificación de clave sin efectos: el panel la usa al entrar.
+    // no-store: una respuesta 200 cacheada no debe validar una clave posterior.
+    http.Response.Headers.CacheControl = "no-store";
     if (RequireAdmin(adminKey) is { } denied) return denied;
     return Results.Ok(new { ok = true });
 })
@@ -523,9 +659,10 @@ app.MapGet("/api/admin/ping", ([FromHeader(Name = "X-Admin-Key")] string? adminK
 .WithSummary("Verifica la clave de administrador (requiere header X-Admin-Key).");
 
 var startedAt = DateTimeOffset.UtcNow;
-app.MapGet("/health", (GeoVistaDb db) =>
+app.MapGet("/health", (HttpContext http, GeoVistaDb db) =>
 {
     // Sonda para Render/monitoreo: 200 = vivo, con conteo para detectar semilla rota.
+    http.Response.Headers.CacheControl = "no-store";
     int count;
     try { count = useDb ? db.Places.Count() : memoryPlaces.Count; }
     catch { count = memoryPlaces.Count; }
@@ -538,10 +675,50 @@ app.MapGet("/health", (GeoVistaDb db) =>
 })
 .WithName("Health")
 .WithSummary("Sonda de salud: devuelve { status, places, uptimeSeconds }.");
-app.MapHealthChecks("/health/ready");
 
-// 404 JSON en vez de página HTML: este host solo sirve API.
-app.MapFallback(() => Results.Json(new { error = "No encontrado." }, statusCode: 404));
+app.MapGet("/health/ready", (HttpContext http, GeoVistaDb db) =>
+{
+    // Readiness de verdad: la DB responde y hay catálogo. En modo JSON
+    // comprobamos además que places.json siga legible (es la fuente de la
+    // próxima escritura y del próximo arranque).
+    http.Response.Headers.CacheControl = "no-store";
+    try
+    {
+        var count = useDb ? db.Places.Count() : memoryPlaces.Count;
+        if (count == 0)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Catálogo no disponible",
+                detail: "No hay lugares cargados.");
+        }
+
+        if (!useDb) _ = File.ReadAllText(jsonPath);
+
+        return Results.Ok(new
+        {
+            status = "ready",
+            places = count,
+            storage = useDb ? "sqlite" : "json",
+        });
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Readiness falló: el catálogo no es legible.");
+        return Results.Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: "Catálogo no disponible",
+            detail: "La base de datos o el catálogo no son legibles.");
+    }
+})
+.WithName("HealthReady")
+.WithSummary("Sonda de readiness: 200 si el catálogo es legible; 503 si no.");
+
+// 404 ProblemDetails en vez de página HTML: este host solo sirve API.
+app.MapFallback(() => Results.Problem(
+    statusCode: StatusCodes.Status404NotFound,
+    title: "No encontrado",
+    detail: "La ruta solicitada no existe."));
 
 // Puerto inyectado por el hosting ($PORT en contenedores; IIS lo ignora).
 var port = Environment.GetEnvironmentVariable("PORT");

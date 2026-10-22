@@ -63,14 +63,41 @@ test.describe('GeoVista', () => {
   });
 
   test('Abrir la experiencia 360°', async ({ page }) => {
+    const opener = page
+      .locator('.grid .card')
+      .first()
+      .getByRole('button', { name: /explorar/i });
+
     await test.step('Explorar desde la primera tarjeta', async () => {
-      await page.locator('.grid .card').first().getByRole('button', { name: /explorar/i }).click();
+      await opener.click();
     });
 
     await test.step('Verificar modal con pestañas', async () => {
-      await expect(page.getByRole('dialog')).toBeVisible();
-      await expect(page.getByRole('tab', { name: /street view|fotográfica/i })).toBeVisible();
-      await expect(page.getByRole('tab', { name: /mapa/i })).toBeVisible();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('tab', { name: /street view|fotográfica/i })).toBeVisible();
+      await expect(dialog.getByRole('tab', { name: /mapa/i })).toBeVisible();
+    });
+
+    await test.step('Foco inicial dentro y scroll del fondo bloqueado', async () => {
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('button', { name: 'Cerrar' })).toBeFocused();
+      expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+    });
+
+    await test.step('Tab queda atrapado dentro del modal', async () => {
+      const dialog = page.getByRole('dialog');
+      await page.keyboard.press('Shift+Tab');
+      await expect(dialog.getByRole('link', { name: /google earth/i })).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(dialog.getByRole('button', { name: 'Cerrar' })).toBeFocused();
+    });
+
+    await test.step('Escape cierra y devuelve el foco al disparador', async () => {
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(opener).toBeFocused();
+      expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
     });
   });
 
@@ -176,6 +203,8 @@ test.describe('GeoVista PWA', () => {
     expect(cached).toContain('/earth-topology.png');
     expect(cached.some((url) => /^\/assets\/index-.*\.js$/.test(url))).toBe(true);
     expect(cached.some((url) => /ExploreModal/.test(url))).toBe(true);
+    // Dependencia compartida del modal: sin ella, abrir un destino falla offline.
+    expect(cached.some((url) => /useModalA11y/.test(url))).toBe(true);
     expect(cached.some((url) => /GlobeBackground/.test(url))).toBe(false);
   });
 

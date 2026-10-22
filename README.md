@@ -91,7 +91,7 @@ npm --prefix frontend run dev
 - PWA: el service worker precarga el shell, el modal y la textura 2D; `three.js` se cachea solo al usarse
 - Imágenes de tarjetas a `w=600`, modal a `w=1200`, `loading="lazy"` + `decoding="async"`
 - Rotación 3D pausada con pestaña oculta, `prefers-reduced-motion` o modal abierto
-- API con `Cache-Control` (`public,max-age=3600` en catálogo, `no-store` en sorteo) y compresión gzip/brotli
+- API con `Cache-Control` (`public,no-cache` + ETag en catálogo/paginación, `no-store` en sorteo), ProblemDetails y compresión gzip/brotli
 
 ## 🗺️ Destinos incluidos
 
@@ -106,7 +106,7 @@ npm --prefix frontend run dev
 - [x] Favoritos (`localStorage`)
 - [x] Base de datos real (EF Core + SQLite/PostgreSQL)
 - [x] Tests (xUnit + Playwright)
-- [x] Observabilidad (salud, logs, headers, ETag) + CI con lint y cobertura
+- [x] Observabilidad (salud, `/health/ready`, logs, headers, ETag, ProblemDetails) + CI con lint y cobertura
 
 ---
 <p align="center">Hecho con 🌎 React · TypeScript · ASP.NET Core</p>

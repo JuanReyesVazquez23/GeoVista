@@ -134,6 +134,13 @@ export default function App() {
     else sessionStorage.removeItem('gv-admin-key');
   }, []);
 
+  // Estable para que el focus trap del modal no se reinicie en cada render.
+  const closeAdmin = useCallback(() => {
+    // Al salir se olvida la clave: reabrir exige autenticarse de nuevo.
+    setAdminOpen(false);
+    changeAdminKey('');
+  }, [changeAdminKey]);
+
   // Tras alta/baja/edición: recarga catálogo + primera página del grid.
   const reloadAll = useCallback(async () => {
     const fresh = await getPlaces();
@@ -543,11 +550,7 @@ export default function App() {
             adminKey={adminKey}
             onKeyChange={changeAdminKey}
             onSaved={reloadAll}
-            onClose={() => {
-              // Al salir se olvida la clave: reabrir exige autenticarse de nuevo.
-              setAdminOpen(false);
-              changeAdminKey('');
-            }}
+            onClose={closeAdmin}
           />
         </Suspense>
       )}
