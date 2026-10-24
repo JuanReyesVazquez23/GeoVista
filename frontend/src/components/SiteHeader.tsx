@@ -30,7 +30,6 @@ export default function SiteHeader({ onLogoClick, onNavigate }: Props) {
           </span>
           <span className="brand-copy">
             <span className="brand-name">GeoVista</span>
-            <span className="brand-tag">Atlas digital</span>
           </span>
         </button>
 

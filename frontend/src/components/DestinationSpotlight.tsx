@@ -18,8 +18,12 @@ export default function DestinationSpotlight({
   onToggleFav,
 }: Props) {
   return (
-    <section id="destino" className="destino" aria-live="polite">
-      {selected ? (
+    <section
+      id="destino"
+      className={`destino${selected ? '' : ' destino--empty'}`}
+      aria-live="polite"
+    >
+      {selected && (
         <article key={selected.id} className="destino-card destino-enter">
           <div className="spotlight-media">
             <PlaceImage
@@ -77,23 +81,6 @@ export default function DestinationSpotlight({
             </div>
           </div>
         </article>
-      ) : (
-        <div className="destino-empty">
-          <span className="destino-empty-icon" aria-hidden="true">
-            <Icon name="compass" size={27} />
-          </span>
-          <div className="destino-empty-copy">
-            <p className="eyebrow">Tu próximo destino</p>
-            <p className="destino-empty-title">El mundo está a un clic.</p>
-            <p className="destino-empty-text">
-              Pulsa <strong>Explorar</strong> para empezar la aventura.
-            </p>
-          </div>
-          <button type="button" className="btn btn-primary" onClick={onRandom}>
-            <Icon name="compass" size={16} />
-            Explorar al azar
-          </button>
-        </div>
       )}
     </section>
   );

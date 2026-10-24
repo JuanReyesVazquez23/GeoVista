@@ -1,34 +1,34 @@
 /* GeoVista — design tokens.
    Una sola fuente de verdad para color, tipografía, espacio, radios y motion.
-   La paleta es editorial: tinta profunda, papel cálido, latón y teal apagado. */
+   La paleta toma el azul profundo, el cian y el blanco frío del logo. */
 :root {
   color-scheme: dark;
 
-  /* Tinta y superficies */
-  --ink-950: #07080b;
-  --ink-900: #0a0c10;
-  --ink-850: #0e1116;
-  --ink-800: #12161d;
-  --ink-700: #1a1f27;
+  /* Azul profundo y superficies */
+  --ink-950: #04070f;
+  --ink-900: #07111f;
+  --ink-850: #0a1626;
+  --ink-800: #0d1d31;
+  --ink-700: #142b44;
 
-  /* Papel y texto */
-  --paper: #f4efe4;
-  --paper-soft: #ded7c9;
-  --paper-dim: #b7b0a2;
-  --muted: #8b877d;
+  /* Blanco frío y texto */
+  --paper: #eef8ff;
+  --paper-soft: #d7e6f1;
+  --paper-dim: #a9bfce;
+  --muted: #7e96a8;
 
   /* Líneas y superficies translúcidas */
-  --line: rgba(244, 239, 228, 0.12);
-  --line-strong: rgba(244, 239, 228, 0.22);
-  --surface: rgba(244, 239, 228, 0.035);
-  --surface-hover: rgba(244, 239, 228, 0.07);
-  --glass: rgba(10, 12, 16, 0.72);
+  --line: rgba(216, 246, 255, 0.12);
+  --line-strong: rgba(216, 246, 255, 0.22);
+  --surface: rgba(216, 246, 255, 0.035);
+  --surface-hover: rgba(216, 246, 255, 0.07);
+  --glass: rgba(7, 17, 31, 0.72);
 
-  /* Acentos */
-  --accent: #d7ad6a;
-  --accent-bright: #f0cc8c;
-  --accent-ink: #1b1408;
-  --teal: #82b9b0;
+  /* Acentos del logo: cian luminoso y azul de la órbita */
+  --accent: #67e8f9;
+  --accent-bright: #a5f3fc;
+  --accent-ink: #04121c;
+  --teal: #38bdf8;
   --danger: #e58f8f;
   --danger-bg: rgba(93, 30, 34, 0.4);
 
@@ -38,7 +38,7 @@
   --heading: var(--paper);
   --stroke: var(--line);
   --accent2: var(--teal);
-  --gradient: linear-gradient(135deg, var(--accent), var(--teal));
+  --gradient: linear-gradient(135deg, var(--teal), var(--accent));
   --font: var(--font-body);
   --radius: var(--radius-lg);
 

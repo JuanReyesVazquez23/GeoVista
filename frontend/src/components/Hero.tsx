@@ -30,15 +30,13 @@ export default function Hero({
   onToggleFavorites,
   onScrollToPlaces,
 }: Props) {
-  const categoryCount = Math.max(categories.length - 1, 0);
-
   return (
     <section id="inicio" className="hero">
       <div className="hero-shell">
         <div className="hero-copy">
           <p className="eyebrow anim">
             <span className="eyebrow-mark" aria-hidden="true" />
-            Atlas digital · Edición 2026
+            Edición 2026
           </p>
 
           <h1 className="anim" style={{ animationDelay: '0.08s' }}>
@@ -98,40 +96,6 @@ export default function Hero({
             {loading ? 'Preparando tu viaje…' : `${placesCount} destinos alrededor del mundo`}
           </p>
         </div>
-
-        <aside className="hero-ledger anim" style={{ animationDelay: '0.2s' }} aria-label="Resumen del atlas">
-          <div className="ledger-head">
-            <span>Índice del atlas</span>
-            <Icon name="compass" size={15} />
-          </div>
-
-          <dl className="ledger-list">
-            <div className="ledger-item">
-              <dt>Destinos</dt>
-              <dd>{placesCount || '—'}</dd>
-            </div>
-            <div className="ledger-item">
-              <dt>Categorías</dt>
-              <dd>{categoryCount || '—'}</dd>
-            </div>
-            <div className="ledger-item">
-              <dt>Vistas</dt>
-              <dd>360°</dd>
-            </div>
-          </dl>
-
-          <p className="ledger-note">
-            Monumentos, plazas, paisajes y montañas. Un mapa abierto a la curiosidad.
-          </p>
-
-          <div className="ledger-rule" aria-hidden="true">
-            <span />
-          </div>
-          <p className="ledger-foot">
-            <span className="status-dot" aria-hidden="true" />
-            Catálogo en línea
-          </p>
-        </aside>
       </div>
     </section>
   );

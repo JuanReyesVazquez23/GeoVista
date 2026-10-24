@@ -18,8 +18,8 @@ body {
   line-height: 1.6;
   color: var(--paper-soft);
   background:
-    radial-gradient(1100px 760px at 76% -8%, rgba(39, 75, 78, 0.4), transparent 64%),
-    radial-gradient(900px 680px at 4% 18%, rgba(96, 73, 42, 0.13), transparent 60%),
+    radial-gradient(1100px 760px at 76% -8%, rgba(34, 184, 230, 0.18), transparent 64%),
+    radial-gradient(900px 680px at 4% 18%, rgba(56, 189, 248, 0.1), transparent 60%),
     var(--ink-950);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -63,7 +63,7 @@ img {
 }
 
 ::selection {
-  background: rgba(215, 173, 106, 0.32);
+  background: rgba(103, 232, 249, 0.3);
   color: var(--paper);
 }
 

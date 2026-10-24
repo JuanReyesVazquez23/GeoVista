@@ -3,14 +3,14 @@
 // (misma imagen, misma caché y sin CORS).
 export const TOPOLOGY_URL = '/earth-topology.png';
 
-// Paleta editorial GeoVista: océano profundo → plataforma → costa → tierra →
-// cumbres. Un teal apagado que dialoga con el latón y el papel de la interfaz.
+// Paleta del logo GeoVista: océano profundo → plataforma → costa → tierra →
+// cumbres. Azul nocturno y cian luminoso sobre el que se lee la interfaz.
 export const STOPS: Array<[number, [number, number, number]]> = [
-  [0, [4, 9, 13]],
-  [0.35, [8, 30, 36]],
-  [0.6, [18, 66, 72]],
-  [0.8, [46, 116, 116]],
-  [1, [158, 206, 194]],
+  [0, [4, 7, 15]],
+  [0.35, [7, 26, 46]],
+  [0.6, [12, 58, 92]],
+  [0.8, [34, 132, 180]],
+  [1, [143, 233, 251]],
 ];
 
 export function ramp(t: number): [number, number, number] {
