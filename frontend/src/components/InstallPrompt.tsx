@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from './ui/Icon';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -74,12 +75,18 @@ export default function InstallPrompt() {
 
   return (
     <div className="install-pill" role="dialog" aria-label="Instalar GeoVista">
-      <span>📲 Lleva GeoVista contigo</span>
+      <span className="install-icon" aria-hidden="true">
+        <Icon name="download" size={16} />
+      </span>
+      <span className="install-copy">
+        <strong>Lleva GeoVista contigo</strong>
+        <small>Instala el atlas en tu pantalla de inicio.</small>
+      </span>
       <button type="button" className="btn btn-primary btn-sm" onClick={install}>
         Instalar
       </button>
       <button type="button" className="install-dismiss" onClick={dismiss} aria-label="Ahora no">
-        ✕
+        <Icon name="close" size={14} />
       </button>
     </div>
   );

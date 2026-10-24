@@ -2,6 +2,7 @@ import { memo } from 'react';
 import type { Place } from '../types';
 import { mapsSearchUrl } from '../maps';
 import PlaceImage from './PlaceImage';
+import Icon from './ui/Icon';
 
 interface Props {
   place: Place;
@@ -10,43 +11,65 @@ interface Props {
   onToggleFav: (id: string) => void;
 }
 
-// memo: evita re-renderizar las 35 tarjetas cuando App re-renderiza
-// (spinning, modal, categoría) sin que cambien sus props.
-// La entrada por scroll y el hover van por CSS (.reveal, .card:hover),
-// sin medir layouts por JS en cada render.
+// memo: evita re-renderizar las tarjetas cuando App re-renderiza por spinner,
+// modal o cambio de página sin que cambien sus props.
 function PlaceCard({ place, onExplore, isFav, onToggleFav }: Props) {
   return (
     <article className="card reveal">
       <div className="card-media">
-        <PlaceImage key={place.id} place={place} w={600} loading="lazy" referrerPolicy="no-referrer" />
+        <PlaceImage
+          key={place.id}
+          place={place}
+          w={720}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+        <span className="card-media-shade" aria-hidden="true" />
         <span className="chip">{place.category}</span>
         <button
           type="button"
           className={`fav-btn${isFav ? ' active' : ''}`}
           onClick={() => onToggleFav(place.id)}
           aria-pressed={isFav}
-          aria-label={isFav ? `Quitar ${place.name} de favoritos` : `Guardar ${place.name} en favoritos`}
+          aria-label={
+            isFav ? `Quitar ${place.name} de favoritos` : `Guardar ${place.name} en favoritos`
+          }
         >
-          {isFav ? '♥' : '♡'}
+          <Icon name="heart" size={16} filled={isFav} />
         </button>
+        {place.hasStreetView !== false && (
+          <span className="card-badge">
+            <Icon name="globe" size={11} />
+            360°
+          </span>
+        )}
       </div>
+
       <div className="card-body">
+        <div className="card-kicker">
+          <span className="card-country">{place.country}</span>
+          <span className="card-kicker-dot" aria-hidden="true" />
+          <span className="card-coords">
+            {place.latitude.toFixed(2)}, {place.longitude.toFixed(2)}
+          </span>
+        </div>
+
         <h3>{place.name}</h3>
-        <p className="card-country">{place.country}</p>
         <p className="card-desc">{place.description}</p>
-        <p className="card-coords">
-          {place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}
-        </p>
+
         <div className="card-actions">
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => onExplore(place)}>
-            {place.hasStreetView === false ? 'Explorar' : 'Explorar 360°'}
+          <button type="button" className="card-link" onClick={() => onExplore(place)}>
+            Explorar
+            <Icon name="arrow-up-right" size={13} />
           </button>
           <a
-            className="btn btn-ghost btn-sm"
+            className="card-map"
             href={mapsSearchUrl(place)}
             target="_blank"
             rel="noreferrer"
+            aria-label={`Abrir ${place.name} en Google Maps`}
           >
+            <Icon name="map-pin" size={13} />
             Maps
           </a>
         </div>

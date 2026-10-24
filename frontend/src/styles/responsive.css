@@ -1,0 +1,480 @@
+/* Adaptación real a tablet y móvil. */
+@media (max-width: 1120px) {
+  .hero-shell {
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 0.62fr);
+    gap: 40px;
+  }
+
+  .hero h1 {
+    font-size: clamp(3.2rem, 6vw, 5.4rem);
+  }
+
+  .nav-links {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 960px) {
+  :root {
+    --nav-h: 64px;
+  }
+
+  .nav-inner {
+    padding: 0 20px;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 56px 0 48px;
+  }
+
+  .hero::before {
+    background: linear-gradient(180deg, rgba(7, 8, 11, 0.88), rgba(7, 8, 11, 0.58) 58%, rgba(7, 8, 11, 0.92));
+  }
+
+  .hero-shell {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 0 20px;
+  }
+
+  .hero-copy {
+    max-width: none;
+  }
+
+  .hero h1 {
+    max-width: none;
+  }
+
+  .hero-ledger {
+    align-self: stretch;
+  }
+
+  .ledger-list {
+    max-width: 520px;
+  }
+
+  .destino {
+    padding: 20px 20px 44px;
+  }
+
+  .destino-card {
+    grid-template-columns: 1fr;
+  }
+
+  .spotlight-media,
+  .spotlight-media img {
+    min-height: 300px;
+    max-height: 380px;
+  }
+
+  .spotlight-body {
+    padding: 28px 24px;
+  }
+
+  .lugares {
+    padding: 40px 20px 64px;
+  }
+
+  .section-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+
+  .catalog-tools {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .searchbar {
+    width: 100%;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .footer-inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .footer-note {
+    grid-column: 1 / -1;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .modal-overlay {
+    padding: 16px;
+  }
+
+  .modal-hero {
+    height: 280px;
+  }
+}
+
+@media (max-width: 720px) {
+  .nav-inner {
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .brand {
+    gap: 9px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .brand-logo {
+    width: 22px;
+    height: 22px;
+  }
+
+  .brand-name {
+    font-size: 1.3rem;
+  }
+
+  .brand-tag {
+    display: none;
+  }
+
+  .nav-links {
+    gap: 14px;
+  }
+
+  .nav-links a {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+
+  .nav-cta {
+    display: none;
+  }
+
+  .hero {
+    padding: 40px 0 36px;
+  }
+
+  .hero-shell {
+    gap: 28px;
+    padding: 0 16px;
+  }
+
+  .eyebrow {
+    font-size: 8.5px;
+    letter-spacing: 0.18em;
+  }
+
+  .hero h1 {
+    max-width: none;
+    font-size: clamp(2.35rem, 10.2vw, 3.4rem);
+    line-height: 0.94;
+  }
+
+  .lede {
+    margin-top: 20px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+  }
+
+  .hero-categories {
+    margin-top: 28px;
+  }
+
+  .pills {
+    flex-wrap: wrap;
+    margin-right: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    overflow: visible;
+  }
+
+  .hero-meta {
+    margin-top: 20px;
+    font-size: 10.5px;
+  }
+
+  .hero-ledger {
+    padding: 18px;
+  }
+
+  .ledger-list {
+    gap: 8px;
+  }
+
+  .ledger-item dd {
+    font-size: 2rem;
+  }
+
+  .ledger-note {
+    margin-top: 18px;
+    font-size: 11.5px;
+  }
+
+  .destino {
+    padding: 12px 16px 36px;
+  }
+
+  .destino-empty {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 22px;
+  }
+
+  .destino-empty .btn {
+    width: 100%;
+  }
+
+  .spotlight-media,
+  .spotlight-media img {
+    min-height: 230px;
+    max-height: 280px;
+  }
+
+  .spotlight-body {
+    padding: 22px 20px;
+  }
+
+  .spotlight-actions {
+    flex-direction: column;
+  }
+
+  .spotlight-actions .btn {
+    width: 100%;
+  }
+
+  .spotlight-facts {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px 0;
+  }
+
+  .lugares {
+    padding: 32px 16px 56px;
+  }
+
+  .section-head {
+    margin-bottom: 22px;
+    padding-top: 22px;
+  }
+
+  .section-head h2 {
+    font-size: clamp(2.1rem, 9vw, 2.8rem);
+  }
+
+  .catalog-tools {
+    gap: 8px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .card-media {
+    aspect-ratio: 4 / 3;
+  }
+
+  .pagination {
+    gap: 4px;
+    margin-top: 26px;
+  }
+
+  .page-num {
+    width: 32px;
+    height: 32px;
+  }
+
+  .footer {
+    padding: 30px 0;
+  }
+
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0 16px;
+  }
+
+  .footer-note {
+    grid-column: auto;
+  }
+
+  .modal-overlay {
+    align-items: flex-start;
+    padding: 8px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px;
+  }
+
+  .modal-hero {
+    height: 220px;
+  }
+
+  .modal-hero-text {
+    right: 54px;
+    bottom: 16px;
+    left: 18px;
+  }
+
+  .modal-hero-text h2 {
+    font-size: 1.9rem;
+  }
+
+  .modal-close {
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .modal-desc {
+    padding: 16px 18px 0;
+    font-size: 13px;
+  }
+
+  .view-tabs {
+    gap: 18px;
+    padding: 14px 18px 0;
+    overflow-x: auto;
+  }
+
+  .tab {
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+
+  .embed-single {
+    padding: 14px 18px 0;
+  }
+
+  .embed-single iframe {
+    height: 260px;
+  }
+
+  .photo-view img {
+    max-height: 280px;
+  }
+
+  .modal-actions {
+    padding: 16px 18px 22px;
+  }
+
+  .modal-actions .btn {
+    flex: 1 1 100%;
+  }
+
+  .admin-modal {
+    padding: 18px;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-row .card-actions {
+    justify-content: flex-start;
+  }
+
+  .install-pill {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    justify-content: center;
+  }
+
+  .update-pill {
+    right: 12px;
+    bottom: 76px;
+    left: 12px;
+  }
+
+  .toast {
+    bottom: 78px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .tour-bar {
+    bottom: 12px;
+    gap: 6px;
+  }
+
+  .tour-name {
+    display: none;
+  }
+
+  .globe-poster {
+    width: min(92vmin, 420px);
+  }
+}
+
+@media (max-width: 420px) {
+  .nav-inner {
+    gap: 8px;
+  }
+
+  .nav-links {
+    gap: 11px;
+  }
+
+  .nav-links a {
+    font-size: 8.5px;
+  }
+
+  .brand-name {
+    font-size: 1.2rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.2rem, 10.2vw, 2.8rem);
+  }
+
+  .card-body h3 {
+    font-size: 1.45rem;
+  }
+
+  .spotlight-body h2 {
+    font-size: 2rem;
+  }
+
+  .ledger-item dd {
+    font-size: 1.75rem;
+  }
+
+  .tour-bar {
+    padding-left: 10px;
+  }
+
+  .tour-count {
+    font-size: 10px;
+  }
+
+  .tour-btn {
+    width: 30px;
+    height: 30px;
+  }
+}

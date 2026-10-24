@@ -1,0 +1,72 @@
+/* GeoVista — design tokens.
+   Una sola fuente de verdad para color, tipografía, espacio, radios y motion.
+   La paleta es editorial: tinta profunda, papel cálido, latón y teal apagado. */
+:root {
+  color-scheme: dark;
+
+  /* Tinta y superficies */
+  --ink-950: #07080b;
+  --ink-900: #0a0c10;
+  --ink-850: #0e1116;
+  --ink-800: #12161d;
+  --ink-700: #1a1f27;
+
+  /* Papel y texto */
+  --paper: #f4efe4;
+  --paper-soft: #ded7c9;
+  --paper-dim: #b7b0a2;
+  --muted: #8b877d;
+
+  /* Líneas y superficies translúcidas */
+  --line: rgba(244, 239, 228, 0.12);
+  --line-strong: rgba(244, 239, 228, 0.22);
+  --surface: rgba(244, 239, 228, 0.035);
+  --surface-hover: rgba(244, 239, 228, 0.07);
+  --glass: rgba(10, 12, 16, 0.72);
+
+  /* Acentos */
+  --accent: #d7ad6a;
+  --accent-bright: #f0cc8c;
+  --accent-ink: #1b1408;
+  --teal: #82b9b0;
+  --danger: #e58f8f;
+  --danger-bg: rgba(93, 30, 34, 0.4);
+
+  /* Compatibilidad con clases existentes */
+  --bg: var(--ink-950);
+  --text: var(--paper-soft);
+  --heading: var(--paper);
+  --stroke: var(--line);
+  --accent2: var(--teal);
+  --gradient: linear-gradient(135deg, var(--accent), var(--teal));
+  --font: var(--font-body);
+  --radius: var(--radius-lg);
+
+  /* Tipografía */
+  --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+
+  /* Radios */
+  --radius-xs: 4px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 34px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 24px 70px rgba(0, 0, 0, 0.34);
+  --shadow-lg: 0 40px 120px rgba(0, 0, 0, 0.5);
+
+  /* Layout */
+  --container: 1240px;
+  --container-narrow: 1080px;
+  --nav-h: 72px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition: 240ms var(--ease-soft);
+}

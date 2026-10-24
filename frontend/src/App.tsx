@@ -3,11 +3,16 @@ import { ApiError, getPagedPlaces, getPlaces, getRandomPlace } from './api/place
 import { smoothScrollToId } from './scroll';
 import { loadFavorites, toggleFavorite } from './favorites';
 import type { PagedResult, Place } from './types';
-import PlaceCard from './components/PlaceCard';
-import PlaceImage from './components/PlaceImage';
+import type { SectionId } from './navigation';
+import SiteHeader from './components/SiteHeader';
+import Hero from './components/Hero';
+import DestinationSpotlight from './components/DestinationSpotlight';
+import CatalogSection from './components/CatalogSection';
+import SiteFooter from './components/SiteFooter';
 import InstallPrompt from './components/InstallPrompt';
 import UpdatePrompt from './components/UpdatePrompt';
 import TourBar from './components/TourBar';
+import Icon from './components/ui/Icon';
 
 // En móvil muestra un globo 2D en canvas (el chunk 3D ni se descarga); ver GlobeBackdrop.
 const GlobeBackdrop = lazy(() => import('./components/GlobeBackdrop'));
@@ -114,6 +119,8 @@ export default function App() {
   // Easter egg: 10 clics en el logo abren el panel admin (el conteo vive en
   // ref y el reseteo en el propio handler: sin efecto, sin re-render por clic).
   const onLogoClick = useCallback(() => {
+    // La marca también vuelve al inicio; el décimo clic abre el panel admin.
+    smoothScrollToId('inicio', { duration: 700, block: 'start' });
     window.clearTimeout(logoTimer.current);
     logoClicks.current += 1;
     if (logoClicks.current >= 10) {
@@ -158,7 +165,7 @@ export default function App() {
 
   const goToPage = (n: number) => {
     setPage(n);
-    // Paginación: 700 ms con offset del nav sticky (-80px).
+    // Paginación: 700 ms con offset del nav sticky.
     smoothScrollToId('lugares', { duration: 700, offset: -80 });
   };
 
@@ -219,32 +226,35 @@ export default function App() {
     return () => obs.disconnect();
   }, []);
 
-  const exploreRandom = useCallback(async (immersiveToo = false) => {
-    setSpinning(true);
-    setExploreError(null);
-    try {
-      // Explorar respeta la categoría elegida: /api/places/random?category= (o filtro local).
-      const place = await getRandomPlace(category === 'Todas' ? undefined : category);
-      // Pequeña pausa cinematográfica para el efecto "slot machine".
-      await new Promise((r) => setTimeout(r, 450));
-      setSelected(place);
-      if (immersiveToo) {
-        setImmersive(place);
-      } else {
-        // Con el modal abierto no se hace scroll del fondo (trabajo inútil).
-        // Explorar: 950 ms centrado, efecto cinematográfico tras el "slot machine".
-        smoothScrollToId('destino', { duration: 950, block: 'center' });
+  const exploreRandom = useCallback(
+    async (immersiveToo = false) => {
+      setSpinning(true);
+      setExploreError(null);
+      try {
+        // Explorar respeta la categoría elegida: /api/places/random?category= (o filtro local).
+        const place = await getRandomPlace(category === 'Todas' ? undefined : category);
+        // Pequeña pausa cinematográfica para el efecto "slot machine".
+        await new Promise((r) => setTimeout(r, 450));
+        setSelected(place);
+        if (immersiveToo) {
+          setImmersive(place);
+        } else {
+          // Con el modal abierto no se hace scroll del fondo (trabajo inútil).
+          // Explorar: 950 ms centrado, efecto cinematográfico tras el "slot machine".
+          smoothScrollToId('destino', { duration: 950, block: 'center' });
+        }
+      } catch (error) {
+        setExploreError(
+          error instanceof ApiError
+            ? error.message
+            : 'No se pudo buscar un destino. Revisa tu conexión e inténtalo de nuevo.',
+        );
+      } finally {
+        setSpinning(false);
       }
-    } catch (error) {
-      setExploreError(
-        error instanceof ApiError
-          ? error.message
-          : 'No se pudo buscar un destino. Revisa tu conexión e inténtalo de nuevo.',
-      );
-    } finally {
-      setSpinning(false);
-    }
-  }, [category]);
+    },
+    [category],
+  );
 
   const categories = useMemo(
     () => ['Todas', ...Array.from(new Set(places.map((p) => p.category))).sort()],
@@ -253,279 +263,109 @@ export default function App() {
   const visible =
     category === 'Todas' ? places : places.filter((p) => p.category === category);
 
+  const goToSection = useCallback((id: SectionId) => {
+    if (id === 'lugares') smoothScrollToId('lugares', { duration: 800, offset: -80 });
+    else if (id === 'destino') smoothScrollToId('destino', { duration: 800, block: 'center' });
+    else smoothScrollToId('inicio', { duration: 800, block: 'start' });
+  }, []);
+
+  const chooseCategory = useCallback((next: string) => {
+    setCategory(next);
+    setFavOnly(false);
+    setPage(1);
+    setExploreError(null);
+  }, []);
+
+  const toggleFavoritesFilter = useCallback(() => {
+    setFavOnly((value) => !value);
+    setPage(1);
+    setExploreError(null);
+  }, []);
+
+  const handleQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    setPage(1);
+  }, []);
+
+  const clearQuery = useCallback(() => {
+    setQuery('');
+    setPage(1);
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setFavOnly(false);
+    setQuery('');
+    setPage(1);
+    setExploreError(null);
+  }, []);
+
+  const openSelected = useCallback(() => {
+    if (selected) setImmersive(selected);
+  }, [selected]);
+
+  const toggleSelectedFav = useCallback(() => {
+    if (selected) toggleFav(selected.id);
+  }, [selected, toggleFav]);
+
   return (
     <div className="app">
+      <a className="skip-link" href="#lugares">
+        Saltar al catálogo
+      </a>
+
       <Suspense fallback={<div className="globe-fallback" aria-hidden="true" />}>
         <GlobeBackdrop paused={immersive !== null || !heroVisible} />
       </Suspense>
 
       <div className="grain" aria-hidden="true" />
 
-      <header className="nav">
-        <div className="brand">
-          <img
-            src="/logo.svg"
-            className="brand-logo"
-            alt="GeoVista"
-            width="32"
-            height="32"
-            title="GeoVista"
-            style={{ cursor: 'pointer' }}
-            onClick={onLogoClick}
-          />
-          <span className="brand-name">GeoVista</span>
-        </div>
-        <nav className="nav-links">
-          <a
-            href="#inicio"
-            onClick={(e) => {
-              e.preventDefault();
-              smoothScrollToId('inicio', { duration: 800, block: 'start' });
-            }}
-          >
-            Inicio
-          </a>
-          <a
-            href="#lugares"
-            onClick={(e) => {
-              e.preventDefault();
-              smoothScrollToId('lugares', { duration: 800, offset: -80 });
-            }}
-          >
-            Lugares
-          </a>
-          <a
-            href="#destino"
-            onClick={(e) => {
-              e.preventDefault();
-              smoothScrollToId('destino', { duration: 800, block: 'center' });
-            }}
-          >
-            Explorar
-          </a>
-        </nav>
-      </header>
+      <SiteHeader onLogoClick={onLogoClick} onNavigate={goToSection} />
 
       <main>
-        <section id="inicio" className="hero">
-          <p className="eyebrow anim">
-            Monumentos · Plazas · Paisajes · Montañas
-          </p>
-          <h1 className="anim" style={{ animationDelay: '0.1s' }}>
-            Descubre el mundo
-            <span className="gradient"> al azar</span>
-          </h1>
-          <p className="lede anim" style={{ animationDelay: '0.2s' }}>
-            Pulsa <strong>Explorar</strong> y GeoVista te teletransporta a un rincón del planeta
-            con foto en línea, coordenadas de Google Maps y vista 360° con Street View.
-          </p>
-          <div className="hero-cta anim" style={{ animationDelay: '0.3s' }}>
-            <button
-              type="button"
-              className={`btn btn-primary btn-xl magnetic${spinning ? ' is-spinning' : ''}`}
-              onClick={() => exploreRandom(false)}
-              disabled={spinning || loading}
-            >
-              {spinning ? '🛰️ Viajando…' : category === 'Todas' ? '🎲 Explorar' : `🎲 Explorar · ${category}`}
-            </button>
-            <a
-              href="#lugares"
-              className="btn btn-ghost btn-xl"
-              onClick={(e) => {
-                e.preventDefault();
-                smoothScrollToId('lugares', { duration: 800, offset: -80 });
-              }}
-            >
-              Ver lugares
-            </a>
-            <button
-              type="button"
-              className="btn btn-ghost btn-xl"
-              onClick={startTour}
-              disabled={loading || places.length === 0}
-            >
-              🗺 Tour 360°
-            </button>
-          </div>
-          <div
-            className="pills anim"
-            style={{ animationDelay: '0.4s' }}
-            role="group"
-            aria-label="Explorar por categoría"
-          >
-            {categories.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={`pill${c === category && !favOnly ? ' active' : ''}`}
-                onClick={() => {
-                  setCategory(c);
-                  setFavOnly(false);
-                  setPage(1);
-                  setExploreError(null);
-                }}
-              >
-                {c}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`pill${favOnly ? ' active' : ''}`}
-              onClick={() => {
-                setFavOnly((v) => !v);
-                setPage(1);
-                setExploreError(null);
-              }}
-              aria-pressed={favOnly}
-            >
-              ♥ Favoritos{favorites.length > 0 ? ` (${favorites.length})` : ''}
-            </button>
-          </div>
-          <p className="hero-meta anim" style={{ animationDelay: '0.5s' }}>
-            {loading ? 'Preparando tu viaje…' : `${places.length} destinos alrededor del mundo`}
-          </p>
-        </section>
+        <Hero
+          categories={categories}
+          category={category}
+          favOnly={favOnly}
+          favoritesCount={favorites.length}
+          placesCount={places.length}
+          loading={loading}
+          spinning={spinning}
+          onExplore={() => exploreRandom(false)}
+          onTour={startTour}
+          onCategory={chooseCategory}
+          onToggleFavorites={toggleFavoritesFilter}
+          onScrollToPlaces={() => goToSection('lugares')}
+        />
 
-        <section id="destino" className="destino">
-          {selected ? (
-            <div key={selected.id} className="destino-card glass destino-enter">
-                <PlaceImage key={selected.id} place={selected} loading="lazy" referrerPolicy="no-referrer" />
-                <div>
-                  <span className="chip">{selected.category}</span>
-                  <h2>{selected.name}</h2>
-                  <p className="card-country">{selected.country}</p>
-                  <p>{selected.description}</p>
-                  <p className="card-coords">
-                    📍 {selected.latitude.toFixed(4)}, {selected.longitude.toFixed(4)}
-                  </p>
-                  <div className="card-actions">
-                    <button type="button" className="btn btn-primary" onClick={() => setImmersive(selected)}>
-                      {selected.hasStreetView === false ? 'Ver galería' : 'Vivir experiencia 360°'}
-                    </button>
-                    <button type="button" className="btn btn-ghost" onClick={() => exploreRandom(false)}>
-                      Otro destino
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      onClick={() => toggleFav(selected.id)}
-                      aria-pressed={favorites.includes(selected.id)}
-                    >
-                      {favorites.includes(selected.id) ? '♥ En favoritos' : '♡ Guardar'}
-                    </button>
-                  </div>
-                </div>
-            </div>
-          ) : (
-            <p className="destino-empty glass">
-               Tu próximo destino aparecerá aquí. Pulsa <strong>Explorar</strong> para empezar
-              la aventura.
-            </p>
-          )}
-        </section>
+        <DestinationSpotlight
+          selected={selected}
+          isFav={selected ? favorites.includes(selected.id) : false}
+          onExplore={openSelected}
+          onRandom={() => exploreRandom(false)}
+          onToggleFav={toggleSelectedFav}
+        />
 
-        <section id="lugares" className="lugares">
-          <div className="section-head">
-            <h2>Lugares del mundo</h2>
-            <p>{paged?.totalCount ?? visible.length} destinos{category !== 'Todas' ? ` de ${category.toLowerCase()}` : ' del mundo'} esperándote.</p>
-            <div className="searchbar" role="search">
-              <span aria-hidden="true">🔍</span>
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Busca un destino, país o categoría…"
-                aria-label="Buscar destinos"
-              />
-              {query && (
-                <button
-                  type="button"
-                  className="search-clear"
-                  onClick={() => {
-                    setQuery('');
-                    setPage(1);
-                  }}
-                  aria-label="Limpiar búsqueda"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-          {loading && !paged ? (
-            <p className="loading">🌐 Cargando el planeta…</p>
-          ) : (
-            <>
-              {paged && paged.totalCount === 0 ? (
-                favOnly ? (
-                  <p className="loading">🤍 Aún no tienes favoritos — toca el ♥ de un lugar para guardarlo aquí.</p>
-                ) : (
-                  <p className="loading">🔍 Sin resultados para “{debounced}”. Prueba con otro destino.</p>
-                )
-              ) : (
-              <div className="grid">
-                {(paged?.items ?? []).map((place) => (
-                  <PlaceCard
-                    key={place.id}
-                    place={place}
-                    onExplore={setImmersive}
-                    isFav={favorites.includes(place.id)}
-                    onToggleFav={toggleFav}
-                  />
-                ))}
-              </div>
-              )}
-              {paged && paged.totalPages > 1 && (
-                <nav className="pagination" aria-label="Paginación de lugares">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={page <= 1 || loadingPage}
-                    onClick={() => goToPage(page - 1)}
-                  >
-                    ← Anterior
-                  </button>
-                  {Array.from({ length: paged.totalPages }, (_, i) => i + 1).map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      className={`page-num${n === page ? ' active' : ''}`}
-                      disabled={loadingPage}
-                      onClick={() => goToPage(n)}
-                      aria-label={`Página ${n}`}
-                      aria-current={n === page ? 'page' : undefined}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={page >= paged.totalPages || loadingPage}
-                    onClick={() => goToPage(page + 1)}
-                  >
-                    Siguiente →
-                  </button>
-                </nav>
-              )}
-              {paged && paged.totalCount > 0 && (
-                <p className="page-info">
-                  Página {paged.page} de {paged.totalPages} · {paged.totalCount} destinos
-                </p>
-              )}
-            </>
-          )}
-        </section>
+        <CatalogSection
+          paged={paged}
+          loading={loading}
+          page={page}
+          loadingPage={loadingPage}
+          category={category}
+          debounced={debounced}
+          favOnly={favOnly}
+          query={query}
+          visibleCount={visible.length}
+          favorites={favorites}
+          onQueryChange={handleQueryChange}
+          onClearQuery={clearQuery}
+          onResetFilters={resetFilters}
+          onGoToPage={goToPage}
+          onExplore={setImmersive}
+          onToggleFav={toggleFav}
+        />
       </main>
 
-      <footer className="footer">
-        <p>
-          <strong>GeoVista</strong> · Descubre el mundo, un destino a la vez.
-        </p>
-      </footer>
+      <SiteFooter onNavigate={goToSection} />
 
       <InstallPrompt />
       <UpdatePrompt />
@@ -533,12 +373,8 @@ export default function App() {
       {exploreError && (
         <div className="toast" role="alert">
           <span>{exploreError}</span>
-          <button
-            type="button"
-            onClick={() => setExploreError(null)}
-            aria-label="Cerrar aviso"
-          >
-            ✕
+          <button type="button" onClick={() => setExploreError(null)} aria-label="Cerrar aviso">
+            <Icon name="close" size={14} />
           </button>
         </div>
       )}
@@ -559,7 +395,10 @@ export default function App() {
         <Suspense
           fallback={
             <div className="modal-overlay">
-              <p className="loading">🌐 Cargando 360°…</p>
+              <div className="modal-loading">
+                <Icon name="globe" size={16} />
+                Cargando 360°…
+              </div>
             </div>
           }
         >

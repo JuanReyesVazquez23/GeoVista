@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Place } from '../types';
 import { ApiError, createPlace, deletePlace, updatePlace, verifyAdminKey } from '../api/placesApi';
 import ModalFrame from './ModalFrame';
+import Icon from './ui/Icon';
 
 interface Props {
   places: Place[];
@@ -53,11 +54,19 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
 
   if (!adminKey) {
     return (
-      <ModalFrame key="auth" label="Acceso administrador" onClose={onClose} className="admin-modal">
+      <ModalFrame
+        key="auth"
+        label="Acceso administrador"
+        onClose={onClose}
+        className="admin-modal admin-auth"
+      >
         <div className="admin-head">
-          <h2>🔐 Administración</h2>
+          <h2>
+            <Icon name="lock" size={18} />
+            Administración
+          </h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">
-            ✕
+            <Icon name="close" size={15} />
           </button>
         </div>
         <p className="modal-desc">Introduce la clave de administrador (variable ADMIN_KEY del backend).</p>
@@ -149,9 +158,12 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
   return (
     <ModalFrame key="panel" label="Administrar lugares" onClose={onClose} className="admin-modal">
         <div className="admin-head">
-          <h2>🛠️ Lugares ({places.length})</h2>
+          <h2>
+            <Icon name="wrench" size={18} />
+            Lugares ({places.length})
+          </h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">
-            ✕
+            <Icon name="close" size={15} />
           </button>
         </div>
 
@@ -257,7 +269,8 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
           <>
             <div className="modal-actions">
               <button type="button" className="btn btn-primary btn-sm" onClick={startNew}>
-                ＋ Agregar lugar
+                <Icon name="plus" size={14} />
+                Agregar lugar
               </button>
             </div>
             <ul className="admin-list">
@@ -267,7 +280,7 @@ export default function AdminPanel({ places, adminKey, onKeyChange, onSaved, onC
                     <strong>{p.name}</strong>
                     <p className="admin-meta">
                       {p.country} · {p.category} · {p.latitude.toFixed(2)}, {p.longitude.toFixed(2)}
-                      {p.hasStreetView === false ? ' · 📷' : ''}
+                      {p.hasStreetView === false ? ' · Galería' : ''}
                     </p>
                   </div>
                   {confirmDelete === p.id ? (

@@ -8,7 +8,7 @@ interface Props {
 }
 
 // Genera la textura del globo tiñendo el mapa de relieve (topology) con la
-// paleta azul: se conserva el relieve real de continentes, sin colores tierra.
+// paleta teal apagada: se conserva el relieve real de continentes.
 function blueEarthTexture(): Promise<string> {
   const solidNavy = () => {
     const c = document.createElement('canvas');
@@ -16,7 +16,7 @@ function blueEarthTexture(): Promise<string> {
     c.height = 32;
     const ctx = c.getContext('2d');
     if (!ctx) return '';
-    ctx.fillStyle = '#0a1c30';
+    ctx.fillStyle = '#071014';
     ctx.fillRect(0, 0, c.width, c.height);
     return c.toDataURL();
   };
@@ -117,8 +117,8 @@ export default function GlobeBackground({ paused }: Props) {
           bumpImageUrl={TOPOLOGY_URL}
           backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
           showAtmosphere
-          atmosphereColor="#38bdf8"
-          atmosphereAltitude={0.2}
+          atmosphereColor="#7fc7bd"
+          atmosphereAltitude={0.18}
         />
       )}
       <div className="globe-vignette" />

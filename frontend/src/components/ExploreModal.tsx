@@ -4,6 +4,7 @@ import type { Place } from '../types';
 import { earthUrl, mapsSearchUrl } from '../maps';
 import { useModalA11y } from '../useModalA11y';
 import PlaceImage from './PlaceImage';
+import Icon, { type IconName } from './ui/Icon';
 
 interface Props {
   place: Place;
@@ -32,14 +33,14 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
     place.googleMapsUrl ||
     `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${place.latitude},${place.longitude}`;
 
-  const tabs: Array<{ id: View; label: string }> = hasStreetView
+  const tabs: Array<{ id: View; label: string; icon: IconName }> = hasStreetView
     ? [
-        { id: 'street', label: '🚶 Street View 360°' },
-        { id: 'map', label: '🗺 Mapa' },
+        { id: 'street', label: 'Street View 360°', icon: 'street' },
+        { id: 'map', label: 'Mapa', icon: 'map' },
       ]
     : [
-        { id: 'photo', label: '📷 Vista fotográfica' },
-        { id: 'map', label: '🗺 Mapa' },
+        { id: 'photo', label: 'Vista fotográfica', icon: 'camera' },
+        { id: 'map', label: 'Mapa', icon: 'map' },
       ];
 
   return (
@@ -71,7 +72,7 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
             </p>
           </div>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">
-            ✕
+            <Icon name="close" size={16} />
           </button>
         </div>
 
@@ -87,6 +88,7 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
               className={`tab${view === t.id ? ' active' : ''}`}
               onClick={() => setView(t.id)}
             >
+              <Icon name={t.icon} size={14} />
               {t.label}
             </button>
           ))}
@@ -102,8 +104,8 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
                 referrerPolicy="no-referrer"
               />
               <p className="embed-hint">
-                📷 Esta zona no tiene cobertura Street View: disfruta la vista fotográfica
-                y ubícala en el mapa.
+                <Icon name="camera" size={13} /> Esta zona no tiene cobertura Street View:
+                disfruta la vista fotográfica y ubícala en el mapa.
               </p>
             </div>
           ) : view === 'street' ? (
@@ -136,10 +138,12 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
 
         <div className="modal-actions">
           <button type="button" className="btn btn-primary" onClick={onRandom}>
-            🎲 Explorar otro lugar
+            <Icon name="compass" size={16} />
+            Explorar otro lugar
           </button>
           {hasStreetView ? (
             <a className="btn btn-ghost" href={panoLink} target="_blank" rel="noreferrer">
+              <Icon name="external" size={14} />
               Abrir 360° en Google Maps
             </a>
           ) : (
@@ -149,15 +153,12 @@ export default function ExploreModal({ place, onClose, onRandom }: Props) {
               target="_blank"
               rel="noreferrer"
             >
+              <Icon name="map-pin" size={14} />
               Abrir en Google Maps
             </a>
           )}
-          <a
-            className="btn btn-ghost"
-            href={earthUrl(place)}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a className="btn btn-ghost" href={earthUrl(place)} target="_blank" rel="noreferrer">
+            <Icon name="globe" size={14} />
             Ver en Google Earth
           </a>
         </div>
