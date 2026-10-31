@@ -8,3 +8,5 @@ frontend/dist/
 frontend/node_modules/
 frontend/test-results/
 frontend/playwright-report/
+config.bat
+node_modules
