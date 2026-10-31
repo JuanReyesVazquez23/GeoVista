@@ -35,8 +35,7 @@ export default function Hero({
       <div className="hero-shell">
         <div className="hero-copy">
           <p className="eyebrow anim">
-            <span className="eyebrow-mark" aria-hidden="true" />
-            Edición 2026
+      
           </p>
 
           <h1 className="anim" style={{ animationDelay: '0.08s' }}>
